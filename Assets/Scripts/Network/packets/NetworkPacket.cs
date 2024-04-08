@@ -10,7 +10,6 @@ public enum PacketType
     Message,
 }
 
-
 public class NetworkPacket
 {
     public PacketType type;
