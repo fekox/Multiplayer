@@ -123,14 +123,15 @@ public class NetString : IMessage<string>
         string outData;
 
         outData = BitConverter.ToString(message, 4);
-        outData = BitConverter.ToString(message, 12);
+
+        Debug.Log(outData);
 
         return outData;
     }
 
     public MessageType GetMessageType()
     {
-        return MessageType.Console;
+        return MessageType.String;
     }
 
     public byte[] Serialize()
@@ -139,6 +140,8 @@ public class NetString : IMessage<string>
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
         outData.AddRange(ObjectToByteArray(data));
+
+        Debug.Log(outData);
 
         return outData.ToArray();
     }
