@@ -10,7 +10,8 @@ public enum MessageType
 {
     HandShake = -1,
     Console = 0,
-    Position = 1
+    Position = 1,
+    String = 2
 }
 
 public interface IMessage<T>
@@ -94,7 +95,6 @@ public class NetVector3 : IMessage<UnityEngine.Vector3>
 
 public class NetString : IMessage<string>
 {
-    private static ulong lastMsgID = 0;
     private string data;
 
     public NetString(string data)
@@ -105,8 +105,12 @@ public class NetString : IMessage<string>
     byte[] ObjectToByteArray(string obj)
     {
         if (obj == null)
+        {
             return null;
+        }
+
         BinaryFormatter bf = new BinaryFormatter();
+
         using (MemoryStream ms = new MemoryStream())
         {
             bf.Serialize(ms, obj);
@@ -118,9 +122,8 @@ public class NetString : IMessage<string>
     {
         string outData;
 
-        outData = BitConverter.ToString(message, 8);
-
-        Console.WriteLine(outData);
+        outData = BitConverter.ToString(message, 4);
+        outData = BitConverter.ToString(message, 12);
 
         return outData;
     }
@@ -135,7 +138,6 @@ public class NetString : IMessage<string>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(lastMsgID++));
         outData.AddRange(ObjectToByteArray(data));
 
         return outData.ToArray();

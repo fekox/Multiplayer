@@ -10,6 +10,7 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
 {
     public Text messages;
     public InputField inputMessage;
+    public NetString netString;
 
     protected override void Initialize()
     {
@@ -27,6 +28,8 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
             NetworkManager.Instance.Broadcast(data);
         }
 
+        netString.Deserialize(data);
+
         messages.text += System.Text.ASCIIEncoding.UTF8.GetString(data) + System.Environment.NewLine;
     }
 
@@ -36,6 +39,8 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
         {
             if (NetworkManager.Instance.isServer)
             {
+                netString.Serialize();
+
                 NetworkManager.Instance.Broadcast(System.Text.ASCIIEncoding.UTF8.GetBytes(inputMessage.text));
                 messages.text += inputMessage.text + System.Environment.NewLine;
             }
