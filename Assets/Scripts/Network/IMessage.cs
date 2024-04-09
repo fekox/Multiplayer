@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using System.Text;
 using System.Net;
+using System.Runtime.Serialization.Formatters.Binary;
 
 public enum MessageType
 {
@@ -89,4 +90,54 @@ public class NetVector3 : IMessage<UnityEngine.Vector3>
     }
 
     //Dictionary<Client,Dictionary<msgType,int>>
+}
+
+public class NetString : IMessage<string>
+{
+    private static ulong lastMsgID = 0;
+    private string data;
+
+    public NetString(string data)
+    {
+        this.data = data;
+    }
+
+    byte[] ObjectToByteArray(string obj)
+    {
+        if (obj == null)
+            return null;
+        BinaryFormatter bf = new BinaryFormatter();
+        using (MemoryStream ms = new MemoryStream())
+        {
+            bf.Serialize(ms, obj);
+            return ms.ToArray();
+        }
+    }
+
+    public string Deserialize(byte[] message)
+    {
+        string outData;
+
+        outData = BitConverter.ToString(message, 8);
+
+        Console.WriteLine(outData);
+
+        return outData;
+    }
+
+    public MessageType GetMessageType()
+    {
+        return MessageType.Console;
+    }
+
+    public byte[] Serialize()
+    {
+        List<byte> outData = new List<byte>();
+
+        outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+        outData.AddRange(BitConverter.GetBytes(lastMsgID++));
+        outData.AddRange(ObjectToByteArray(data));
+
+        return outData.ToArray();
+    }
 }
