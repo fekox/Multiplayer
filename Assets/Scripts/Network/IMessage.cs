@@ -31,18 +31,16 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     protected static ulong msjID = 0;
 
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
-
-    public abstract void ReadMsgID();
+    public abstract void ReadMsgID(byte[] message);
 }
-
-//Crear una clase abstracta que hereda de la clase de arriba.
-//Con: Un lastSendMsjId y un msjID.
-//Un protected static Dictionary<MessageType, unlong> lastExecutedMsgID = new Dictionary<MessageType, unlong>;
-//Con metodo readMSjId(byte[]).
-//ToUInt64.
 
 public abstract class NetHandShake : OrderMessage<(long, int)>
 {
+    public override void ReadMsgID(byte[] message) 
+    {
+
+    }
+
     public override (long, int) Deserialize(byte[] message)
     {
         (long, int) outData;
@@ -79,6 +77,11 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
         this.data = data;
     }
 
+    public override void ReadMsgID(byte[] message)
+    {
+
+    }
+
     public override Vector3 Deserialize(byte[] message)
     {
         Vector3 outData;
@@ -111,12 +114,16 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
     //Dictionary<Client,Dictionary<msgType,int>>
 }
 
-//Que herede de la clase para ordenar mensajes.
 public abstract class NetString : OrderMessage<string>
 {
     public NetString(string data)
     {
         this.data = data;
+    }
+
+    public override void ReadMsgID(byte[] message)
+    {
+
     }
 
     byte[] ObjectToByteArray(string obj)
