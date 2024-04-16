@@ -19,8 +19,6 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
         this.gameObject.SetActive(false);
 
         NetworkManager.Instance.OnReceiveEvent += OnReceiveDataEvent;
-
-        netString = new NetString(this.gameObject.name);
     }
 
     void OnReceiveDataEvent(byte[] data, IPEndPoint ep)

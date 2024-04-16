@@ -5,6 +5,7 @@ using System;
 using System.Text;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.CompilerServices;
 
 public enum MessageType
 {
@@ -14,17 +15,35 @@ public enum MessageType
     String = 2
 }
 
-public interface IMessage<T>
+public abstract class BaseMessage<T>
 {
-    public MessageType GetMessageType();
-    public byte[] Serialize();
-    public T Deserialize(byte[] message);
+    public abstract MessageType GetMessageType();
+    public abstract byte[] Serialize();
+    public abstract T Deserialize(byte[] message);
+
+    public T data;
 }
 
-public class NetHandShake : IMessage<(long, int)>
+public abstract class OrderMessage<T> : BaseMessage<T>
 {
-    (long, int) data;
-    public (long, int) Deserialize(byte[] message)
+    protected static ulong lastSenMsgID = 0;
+
+    protected static ulong msjID = 0;
+
+    protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
+
+    public abstract void ReadMsgID();
+}
+
+//Crear una clase abstracta que hereda de la clase de arriba.
+//Con: Un lastSendMsjId y un msjID.
+//Un protected static Dictionary<MessageType, unlong> lastExecutedMsgID = new Dictionary<MessageType, unlong>;
+//Con metodo readMSjId(byte[]).
+//ToUInt64.
+
+public abstract class NetHandShake : OrderMessage<(long, int)>
+{
+    public override (long, int) Deserialize(byte[] message)
     {
         (long, int) outData;
 
@@ -34,12 +53,12 @@ public class NetHandShake : IMessage<(long, int)>
         return outData;
     }
 
-    public MessageType GetMessageType()
+    public override MessageType GetMessageType()
     {
        return MessageType.HandShake;
     }
 
-    public byte[] Serialize()
+    public override byte[] Serialize()
     {
         List<byte> outData = new List<byte>();
 
@@ -51,17 +70,16 @@ public class NetHandShake : IMessage<(long, int)>
     }
 }
 
-public class NetVector3 : IMessage<UnityEngine.Vector3>
+public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
 {
     private static ulong lastMsgID = 0;
-    private Vector3 data;
 
     public NetVector3(Vector3 data)
     {
         this.data = data;
     }
 
-    public Vector3 Deserialize(byte[] message)
+    public override Vector3 Deserialize(byte[] message)
     {
         Vector3 outData;
 
@@ -72,12 +90,12 @@ public class NetVector3 : IMessage<UnityEngine.Vector3>
         return outData;
     }
 
-    public MessageType GetMessageType()
+    public override MessageType GetMessageType()
     {
         return MessageType.Position;
     }
 
-    public byte[] Serialize()
+    public override byte[] Serialize()
     {
         List<byte> outData = new List<byte>();
 
@@ -93,10 +111,9 @@ public class NetVector3 : IMessage<UnityEngine.Vector3>
     //Dictionary<Client,Dictionary<msgType,int>>
 }
 
-public class NetString : IMessage<string>
+//Que herede de la clase para ordenar mensajes.
+public abstract class NetString : OrderMessage<string>
 {
-    private string data;
-
     public NetString(string data)
     {
         this.data = data;
@@ -118,7 +135,7 @@ public class NetString : IMessage<string>
         }
     }
 
-    public string Deserialize(byte[] message)
+    public override string Deserialize(byte[] message)
     {
         string outData;
 
@@ -129,12 +146,12 @@ public class NetString : IMessage<string>
         return outData;
     }
 
-    public MessageType GetMessageType()
+    public override MessageType GetMessageType()
     {
         return MessageType.String;
     }
 
-    public byte[] Serialize()
+    public override byte[] Serialize()
     {
         List<byte> outData = new List<byte>();
 
