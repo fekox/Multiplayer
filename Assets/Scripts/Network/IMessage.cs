@@ -6,6 +6,7 @@ using System.Text;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.CompilerServices;
+using UnityEngine.UI;
 
 public enum MessageType
 {
@@ -114,7 +115,7 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
     //Dictionary<Client,Dictionary<msgType,int>>
 }
 
-public abstract class NetString : OrderMessage<string>
+public class NetString : OrderMessage<string>
 {
     public NetString(string data)
     {
@@ -126,27 +127,18 @@ public abstract class NetString : OrderMessage<string>
 
     }
 
-    byte[] ObjectToByteArray(string obj)
-    {
-        if (obj == null)
-        {
-            return null;
-        }
-
-        BinaryFormatter bf = new BinaryFormatter();
-
-        using (MemoryStream ms = new MemoryStream())
-        {
-            bf.Serialize(ms, obj);
-            return ms.ToArray();
-        }
-    }
-
     public override string Deserialize(byte[] message)
     {
         string outData;
+        
+        int stringLength = BitConverter.ToInt32(message, 4);
 
         outData = BitConverter.ToString(message, 4);
+
+        for (int i = 0; i < stringLength; i++)
+        {
+            outData += (char)message[8 + i]; 
+        }
 
         Debug.Log(outData);
 
@@ -158,12 +150,17 @@ public abstract class NetString : OrderMessage<string>
         return MessageType.String;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize()  
     {
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(ObjectToByteArray(data));
+        outData.AddRange(BitConverter.GetBytes(data.Length));
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            outData.Add((byte)data[i]);
+        }
 
         Debug.Log(outData);
 
