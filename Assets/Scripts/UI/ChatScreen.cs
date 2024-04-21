@@ -11,6 +11,7 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
     public Text messages;
     public InputField inputMessage;
     public NetString netString;
+    public NetHandShake netHandShake;
 
     protected override void Initialize()
     {
@@ -25,11 +26,16 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(data);
 
+        Client client = new Client();
+
         if (NetworkManager.Instance.isServer)
         {
             switch (type)
             {
                 case MessageType.HandShake:
+
+                    NetworkManager.Instance.Broadcast(data);
+
                 break;
 
                 case MessageType.Console:
@@ -52,6 +58,11 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
             switch (type)
             {
                 case MessageType.HandShake:
+
+                    client.PassClientData(client);
+
+                    messages.text += "New Client: " + client.id + " is online" + System.Environment.NewLine;
+
                     break;
 
                 case MessageType.Console:

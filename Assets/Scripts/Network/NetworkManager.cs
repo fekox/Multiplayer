@@ -15,10 +15,30 @@ public struct Client
         this.id = id;
         this.ipEndPoint = ipEndPoint;
     }
+
+    public int GetClientID() 
+    {
+        return id;
+    }
+
+    public void SetClientID(int newID) 
+    {
+        this.id = newID;
+    }
+
+    public void PassClientData(Client newClient)
+    {
+        newClient.id = id;
+        newClient.timeStamp = timeStamp;
+        newClient.ipEndPoint = ipEndPoint;
+    }
 }
 
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
 {
+    Client client;
+    ChatScreen chatScreen;
+
     public IPAddress ipAddress
     {
         get; private set;
@@ -43,8 +63,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
     private readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
 
-    int clientId = 0; // This id should be generated during first handshake
-
     public void StartServer(int port)
     {
         isServer = true;
@@ -68,14 +86,15 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         if (!ipToId.ContainsKey(ip))
         {
-            Debug.Log("Adding client: " + ip.Address);
+            Debug.Log("Adding client: " + client.id + " IP:" + ip.Address);
 
-            int id = clientId;
-            ipToId[ip] = clientId;
+            ipToId[ip] = client.id;
 
-            clients.Add(clientId, new Client(ip, id, Time.realtimeSinceStartup));
+            clients.Add(client.id, new Client(ip, client.id, Time.realtimeSinceStartup));
 
-            clientId++;
+            client.id++;
+
+            client.SetClientID(client.id);
         }
     }
 
@@ -85,6 +104,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             Debug.Log("Removing client: " + ip.Address);
             clients.Remove(ipToId[ip]);
+
+            client.SetClientID(client.id);
         }
     }
 

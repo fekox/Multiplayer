@@ -17,7 +17,7 @@ public class MessageManager : MonoBehaviour
         }
     }
 
-    public void ReadMessage(MessageType messageType) 
+    public MessageType ReadMessage(MessageType messageType) 
     {
         switch (messageType) 
         {
@@ -37,5 +37,7 @@ public class MessageManager : MonoBehaviour
 
             break;
         }
+
+        return messageType;
     }
 }
