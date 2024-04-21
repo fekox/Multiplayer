@@ -1,10 +1,13 @@
 ﻿using System;
-using System.IO;
 using System.Net;
+using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine.UI;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
+
+
 
 public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
 {

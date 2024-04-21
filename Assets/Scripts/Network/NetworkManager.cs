@@ -86,7 +86,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         if (!ipToId.ContainsKey(ip))
         {
-            Debug.Log("Adding client: " + client.id + " IP:" + ip.Address);
+            Debug.Log("Adding client: " + client.id + "|| IP:" + ip.Address);
 
             ipToId[ip] = client.id;
 

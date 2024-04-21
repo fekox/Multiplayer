@@ -32,14 +32,16 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     protected static ulong msjID = 0;
 
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
-    public abstract void ReadMsgID(byte[] message);
+    public abstract MessageType ReadMsgID(byte[] message);
 }
 
 public abstract class NetHandShake : OrderMessage<(long, int)>
 {
-    public override void ReadMsgID(byte[] message) 
+    public override MessageType ReadMsgID(byte[] message) 
     {
+        MessageType type = (MessageType)BitConverter.ToUInt32(message);
 
+        return type;
     }
 
     public override (long, int) Deserialize(byte[] message)
@@ -78,9 +80,11 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
         this.data = data;
     }
 
-    public override void ReadMsgID(byte[] message)
+    public override MessageType ReadMsgID(byte[] message)
     {
+        MessageType type = (MessageType)BitConverter.ToUInt32(message);
 
+        return type;
     }
 
     public override Vector3 Deserialize(byte[] message)
@@ -122,9 +126,11 @@ public class NetString : OrderMessage<string>
         this.data = data;
     }
 
-    public override void ReadMsgID(byte[] message)
+    public override MessageType ReadMsgID(byte[] message)
     {
+        MessageType type = (MessageType)BitConverter.ToUInt32(message);
 
+        return type;
     }
 
     public override string Deserialize(byte[] message)
