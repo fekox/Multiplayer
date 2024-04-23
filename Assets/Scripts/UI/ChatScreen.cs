@@ -14,7 +14,9 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
     public Text messages;
     public InputField inputMessage;
     public NetString netString;
-    public NetHandShake netHandShake;
+    public NetClientToServerHandShake netClientToServerHandShake;
+    public NetServerToClientHandShake netServerToClientHandShake;
+
 
     protected override void Initialize()
     {
@@ -29,20 +31,23 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(data);
 
-        Client client = new Client();
-
         if (NetworkManager.Instance.isServer)
         {
             switch (type)
             {
-                case MessageType.HandShake:
+                case MessageType.ClientToServerHandShake:
+
+                    NetworkManager.Instance.Broadcast(data);
+
+                break;
+
+                case MessageType.ServerToClientHandShake:
 
                     NetworkManager.Instance.Broadcast(data);
 
                 break;
 
                 case MessageType.Console:
-
                 break;
 
                 case MessageType.Position:
@@ -60,26 +65,29 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
         {
             switch (type)
             {
-                case MessageType.HandShake:
+                case MessageType.ClientToServerHandShake:
 
-                    client.PassClientData(client);
+                    messages.text += netClientToServerHandShake.Deserialize(data) + System.Environment.NewLine;
 
-                    messages.text += "New Client: " + client.id + " is online" + System.Environment.NewLine;
+                break;
 
-                    break;
+                case MessageType.ServerToClientHandShake:
+
+                    messages.text += netServerToClientHandShake.Deserialize(data) + System.Environment.NewLine;
+
+                break;
 
                 case MessageType.Console:
-
-                    break;
+                break;
 
                 case MessageType.Position:
-                    break;
+                break;
 
                 case MessageType.String:
 
                     messages.text += netString.Deserialize(data) + System.Environment.NewLine;
 
-                    break;
+                break;
             }
         }
     }

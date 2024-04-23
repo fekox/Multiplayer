@@ -19,23 +19,25 @@ public class MessageManager : MonoBehaviour
 
     public MessageType ReadMessage(MessageType messageType) 
     {
-        switch (messageType) 
+        switch (messageType)
         {
-            case MessageType.HandShake:
-            
-            break;
+            case MessageType.ClientToServerHandShake:
+
+                break;
+
+            case MessageType.ServerToClientHandShake:
+
+                break;
+
+            case MessageType.Console:
+                break;
 
             case MessageType.Position:
-
-            break;
+                break;
 
             case MessageType.String:
 
-            break;
-
-            case MessageType.Console:
-
-            break;
+                break;
         }
 
         return messageType;

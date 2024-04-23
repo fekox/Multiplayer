@@ -5,12 +5,14 @@ using UnityEngine;
 
 public struct Client
 {
+    public string clientName;
     public float timeStamp;
     public int id;
     public IPEndPoint ipEndPoint;
 
-    public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
+    public Client(string clientName, IPEndPoint ipEndPoint, int id, float timeStamp)
     {
+        this.clientName = clientName;
         this.timeStamp = timeStamp;
         this.id = id;
         this.ipEndPoint = ipEndPoint;
@@ -70,27 +72,28 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         connection = new UdpConnection(port, this);
     }
 
-    public void StartClient(IPAddress ip, int port)
+    public void StartClient(string clientName, IPAddress ip, int port)
     {
         isServer = false;
 
+        client.clientName = clientName;
         this.port = port;
         this.ipAddress = ip;
 
         connection = new UdpConnection(ip, port, this);
 
-        AddClient(new IPEndPoint(ip, port));
+        AddClient(clientName, new IPEndPoint(ip, port));
     }
 
-    void AddClient(IPEndPoint ip)
+    void AddClient(string clientName, IPEndPoint ip)
     {
         if (!ipToId.ContainsKey(ip))
         {
-            Debug.Log("Adding client: " + client.id + "|| IP:" + ip.Address);
+            Debug.Log("Adding client: Name:" + clientName + " || IP:" + client.id + " || IP:" + ip.Address);
 
             ipToId[ip] = client.id;
 
-            clients.Add(client.id, new Client(ip, client.id, Time.realtimeSinceStartup));
+            clients.Add(client.id, new Client(clientName, ip, client.id, Time.realtimeSinceStartup));
 
             client.id++;
 
@@ -111,7 +114,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public void OnReceiveData(byte[] data, IPEndPoint ip)
     {
-        AddClient(ip);
+        AddClient(client.clientName, ip);
 
         if (OnReceiveEvent != null)
             OnReceiveEvent.Invoke(data, ip);
