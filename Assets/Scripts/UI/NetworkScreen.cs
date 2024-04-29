@@ -25,7 +25,7 @@ public class NetworkScreen : MonoBehaviourSingleton<NetworkScreen>
 
         string clientName = clientNameInputField.text;
 
-        NetworkManager.Instance.StartClient(clientNameInputField.text, ipAddress, port);
+        NetworkManager.Instance.StartClient(clientName, ipAddress, port);
         
         SwitchToChatScreen();
     }

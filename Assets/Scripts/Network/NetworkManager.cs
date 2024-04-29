@@ -58,7 +58,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public int TimeOut = 30;
 
-    public Action<byte[], IPEndPoint> OnReceiveEvent;
+    public Action<string, byte[], IPEndPoint> OnReceiveEvent;
 
     private UdpConnection connection;
 
@@ -112,12 +112,12 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
     }
 
-    public void OnReceiveData(byte[] data, IPEndPoint ip)
+    public void OnReceiveData(string clientName, byte[] data, IPEndPoint ipEndpoint)
     {
-        AddClient(client.clientName, ip);
+        AddClient(client.clientName, ipEndpoint);
 
         if (OnReceiveEvent != null)
-            OnReceiveEvent.Invoke(data, ip);
+            OnReceiveEvent.Invoke(clientName, data, ipEndpoint);
     }
 
     public void SendToServer(byte[] data)

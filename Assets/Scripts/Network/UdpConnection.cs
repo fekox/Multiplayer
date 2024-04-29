@@ -7,6 +7,7 @@ public class UdpConnection
 {
     private struct DataReceived
     {
+        public string clientName;
         public byte[] data;
         public IPEndPoint ipEndPoint;
     }
@@ -49,7 +50,7 @@ public class UdpConnection
             {
                 DataReceived dataReceived = dataReceivedQueue.Dequeue();
                 if (receiver != null)
-                    receiver.OnReceiveData(dataReceived.data, dataReceived.ipEndPoint);
+                    receiver.OnReceiveData(dataReceived.clientName, dataReceived.data, dataReceived.ipEndPoint);
             }
         }
     }

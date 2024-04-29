@@ -27,7 +27,7 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
         NetworkManager.Instance.OnReceiveEvent += OnReceiveDataEvent;
     }
 
-    void OnReceiveDataEvent(byte[] data, IPEndPoint ep)
+    void OnReceiveDataEvent(string clientName, byte[] data, IPEndPoint ep)
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(data);
 
