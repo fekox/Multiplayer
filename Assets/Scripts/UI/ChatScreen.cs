@@ -13,7 +13,7 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
 {
     public Text messages;
     public InputField inputMessage;
-    public NetString netString;
+    public NetConsole netConsole;
     public NetClientToServerHandShake netClientToServerHandShake;
     public NetServerToClientHandShake netServerToClientHandShake;
 
@@ -29,7 +29,7 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
 
     void OnReceiveDataEvent(string clientName, byte[] data, IPEndPoint ep)
     {
-        MessageType type = (MessageType)BitConverter.ToUInt32(data);
+        MessageType type = netConsole.ReadMsgID(data);
 
         if (NetworkManager.Instance.isServer)
         {
@@ -48,15 +48,12 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
                 break;
 
                 case MessageType.Console:
-                break;
-
-                case MessageType.Position:
-                break;
-
-                case MessageType.String:
 
                     NetworkManager.Instance.Broadcast(data);
 
+                    break;
+
+                case MessageType.Position:
                 break;
             }
         }
@@ -78,15 +75,11 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
                 break;
 
                 case MessageType.Console:
+
+                    messages.text += netConsole.Deserialize(data) + System.Environment.NewLine;
                 break;
 
                 case MessageType.Position:
-                break;
-
-                case MessageType.String:
-
-                    messages.text += netString.Deserialize(data) + System.Environment.NewLine;
-
                 break;
             }
         }
@@ -96,17 +89,17 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
     {
         if (inputMessage.text != "")
         {
-            netString = new NetString(str);
+            netConsole = new NetConsole(str);
 
             if (NetworkManager.Instance.isServer)
             {
-                NetworkManager.Instance.Broadcast(netString.Serialize());
+                NetworkManager.Instance.Broadcast(netConsole.Serialize());
                 messages.text += inputMessage.text + System.Environment.NewLine;
             }
 
             else
             {
-                NetworkManager.Instance.SendToServer(netString.Serialize());
+                NetworkManager.Instance.SendToServer(netConsole.Serialize());
             }
 
             inputMessage.ActivateInputField();

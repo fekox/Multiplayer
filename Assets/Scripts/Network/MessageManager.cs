@@ -34,10 +34,6 @@ public class MessageManager : MonoBehaviour
 
             case MessageType.Position:
                 break;
-
-            case MessageType.String:
-
-                break;
         }
 
         return messageType;

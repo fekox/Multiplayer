@@ -13,8 +13,7 @@ public enum MessageType
     ClientToServerHandShake = 0,
     ServerToClientHandShake = 1,
     Console = 2,
-    Position = 3,
-    String = 4
+    Position = 3
 }
 
 public abstract class BaseMessage<T>
@@ -31,6 +30,8 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     protected static ulong lastSenMsgID = 0;
 
     protected static ulong msjID = 0;
+
+    protected static Player player;
 
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
     public abstract MessageType ReadMsgID(byte[] message);
@@ -184,32 +185,25 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
     }
 }
 
-public class NetString : OrderMessage<string>
+public class NetConsole : OrderMessage<string>
 {
-    public NetString(string data)
+    public NetConsole(string data)
     {
         this.data = data;
     }
 
     public override MessageType ReadMsgID(byte[] message)
     {
-        MessageType type = (MessageType)BitConverter.ToUInt32(message);
-
-        return type;
+        return (MessageType)BitConverter.ToUInt32(message);
     }
 
     public override string Deserialize(byte[] message)
     {
         string outData;
-        
+
         int stringLength = BitConverter.ToInt32(message, 4);
 
-        outData = BitConverter.ToString(message, 4);
-
-        for (int i = 0; i < stringLength; i++)
-        {
-            outData += (char)message[8 + i]; 
-        }
+        outData = Encoding.UTF8.GetString(message, 8, stringLength);
 
         Debug.Log(outData);
 
@@ -218,7 +212,7 @@ public class NetString : OrderMessage<string>
 
     public override MessageType GetMessageType()
     {
-        return MessageType.String;
+        return MessageType.Console;
     }
 
     public override byte[] Serialize()  
@@ -228,10 +222,7 @@ public class NetString : OrderMessage<string>
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
         outData.AddRange(BitConverter.GetBytes(data.Length));
 
-        for (int i = 0; i < data.Length; i++)
-        {
-            outData.Add((byte)data[i]);
-        }
+        outData.AddRange(Encoding.UTF8.GetBytes(data));
 
         Debug.Log(outData);
 

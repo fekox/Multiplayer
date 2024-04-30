@@ -36,10 +36,27 @@ public struct Client
     }
 }
 
+public struct Player 
+{
+    public string name;
+    public int ID;
+    public IPEndPoint IP;
+    public List<Player> playerList;
+
+    public string GetPlayerName() 
+    {
+        return name;
+    }
+
+    public List<Player> GetPlayers() 
+    {
+        return playerList;
+    }
+}
+
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
 {
     Client client;
-    ChatScreen chatScreen;
 
     public IPAddress ipAddress
     {
@@ -89,7 +106,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         if (!ipToId.ContainsKey(ip))
         {
-            Debug.Log("Adding client: Name:" + clientName + " || IP:" + client.id + " || IP:" + ip.Address);
+            Debug.Log("Adding client:");
 
             ipToId[ip] = client.id;
 
@@ -98,6 +115,18 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             client.id++;
 
             client.SetClientID(client.id);
+
+            Player player = new Player();
+
+            player.ID = client.id;
+
+            player.name = clientName;
+
+            player.IP = ip;
+
+            Debug.Log("Create Player: Name: " + player.name + " || IP:" + player.ID + " || IP:" + player.IP);
+
+            player.playerList.Add(player);
         }
     }
 
