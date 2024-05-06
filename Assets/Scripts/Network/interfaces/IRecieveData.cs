@@ -3,5 +3,5 @@ using UnityEditor;
 
 public interface IReceiveData
 {
-    void OnReceiveData(string clientName, byte[] data, IPEndPoint ipEndpoint);
+    void OnReceiveData(byte[] data, IPEndPoint ipEndpoint);
 }

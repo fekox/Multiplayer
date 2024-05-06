@@ -10,9 +10,9 @@ public struct Client
     public int id;
     public IPEndPoint ipEndPoint;
 
-    public Client(string clientName, IPEndPoint ipEndPoint, int id, float timeStamp)
+    public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
     {
-        this.clientName = clientName;
+        clientName = "";
         this.timeStamp = timeStamp;
         this.id = id;
         this.ipEndPoint = ipEndPoint;
@@ -36,28 +36,25 @@ public struct Client
     }
 }
 
-public struct Player 
+public struct Player
 {
-    public string name;
+    public string clientId;
     public int ID;
-    public IPEndPoint IP;
-    public List<Player> playerList;
+
+    public Player (int id, string name) 
+    {
+        this.ID = id;
+        this.clientId = name;
+    }
 
     public string GetPlayerName() 
     {
-        return name;
-    }
-
-    public List<Player> GetPlayers() 
-    {
-        return playerList;
+        return clientId;
     }
 }
 
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
 {
-    Client client;
-
     public IPAddress ipAddress
     {
         get; private set;
@@ -75,12 +72,15 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public int TimeOut = 30;
 
-    public Action<string, byte[], IPEndPoint> OnReceiveEvent;
+    public Action<byte[], IPEndPoint> OnReceiveEvent;
 
     private UdpConnection connection;
 
     private readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
     private readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
+    private List<Player> playerList;
+    public Player player;
+    public int clientID = 0;
 
     public void StartServer(int port)
     {
@@ -93,40 +93,29 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         isServer = false;
 
-        client.clientName = clientName;
         this.port = port;
         this.ipAddress = ip;
 
         connection = new UdpConnection(ip, port, this);
 
-        AddClient(clientName, new IPEndPoint(ip, port));
+        MessageManager.Instance.OnSendServerHandShake(player.ID, player.clientId);
     }
 
-    void AddClient(string clientName, IPEndPoint ip)
+    void AddClient(IPEndPoint ip)
     {
         if (!ipToId.ContainsKey(ip))
         {
-            Debug.Log("Adding client:");
+            Debug.Log("Adding client: " + ip.Address);
 
-            ipToId[ip] = client.id;
+            int id = clientID;
 
-            clients.Add(client.id, new Client(clientName, ip, client.id, Time.realtimeSinceStartup));
+            ipToId[ip] = clientID;
 
-            client.id++;
+            clients.Add(clientID, new Client(ip, id, Time.realtimeSinceStartup));
 
-            client.SetClientID(client.id);
+            playerList.Add(new Player(clientID, player.clientId));
 
-            Player player = new Player();
-
-            player.ID = client.id;
-
-            player.name = clientName;
-
-            player.IP = ip;
-
-            Debug.Log("Create Player: Name: " + player.name + " || IP:" + player.ID + " || IP:" + player.IP);
-
-            player.playerList.Add(player);
+            clientID++;
         }
     }
 
@@ -136,17 +125,15 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             Debug.Log("Removing client: " + ip.Address);
             clients.Remove(ipToId[ip]);
-
-            client.SetClientID(client.id);
         }
     }
 
-    public void OnReceiveData(string clientName, byte[] data, IPEndPoint ipEndpoint)
+    public void OnReceiveData(byte[] data, IPEndPoint ipEndpoint)
     {
-        AddClient(client.clientName, ipEndpoint);
+        AddClient(ipEndpoint);
 
         if (OnReceiveEvent != null)
-            OnReceiveEvent.Invoke(clientName, data, ipEndpoint);
+            OnReceiveEvent.Invoke(data, ipEndpoint);
     }
 
     public void SendToServer(byte[] data)

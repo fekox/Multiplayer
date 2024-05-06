@@ -7,20 +7,21 @@ using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.CompilerServices;
 using UnityEngine.UI;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 public enum MessageType
 {
-    ClientToServerHandShake = 0,
-    ServerToClientHandShake = 1,
+    ToServerHandShake = 0,
+    ToClientHandShake = 1,
     Console = 2,
     Position = 3
 }
 
 public abstract class BaseMessage<T>
 {
-    public abstract MessageType GetMessageType();
     public abstract byte[] Serialize();
     public abstract T Deserialize(byte[] message);
+    public abstract MessageType GetMessageType();
 
     public T data;
 }
@@ -37,15 +38,8 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     public abstract MessageType ReadMsgID(byte[] message);
 }
 
-public abstract class NetServerToClientHandShake : OrderMessage<(long, int, int)>
+public class NetToClientHandShake : OrderMessage<List<Player>>
 {
-    public NetServerToClientHandShake(int ID, int clientID, int Ip) 
-    {
-        this.data.Item1 = ID;
-        this.data.Item2 = clientID;
-        this.data.Item3 = Ip;
-    }
-
     public override MessageType ReadMsgID(byte[] message) 
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(message);
@@ -53,17 +47,40 @@ public abstract class NetServerToClientHandShake : OrderMessage<(long, int, int)
         return type;
     }
 
-    public override (long, int, int) Deserialize(byte[] message)
+    public override List<Player> Deserialize(byte[] message)
     {
-        (long, int, int) outData;
+        int currentPosition = 0;
+        currentPosition += 4;
 
-        outData.Item1 = BitConverter.ToInt32(message, 4);
-        outData.Item2 = BitConverter.ToInt32(message, 8);
-        outData.Item3 = BitConverter.ToInt32(message, 12);
+        int totalPlayers = BitConverter.ToInt32(message, currentPosition);
+        Debug.Log("total player: " + totalPlayers);
 
-        Debug.Log(outData);
+        currentPosition += 4;
 
-        return (outData.Item1, outData.Item2, outData.Item3);
+        List<Player> newPlayerList = new List<Player>();
+
+        for (int i = 0; i < totalPlayers; i++)
+        {
+            int Id = BitConverter.ToInt32(message, currentPosition);
+            currentPosition += 4;
+
+            int clientIdLenght = BitConverter.ToInt32(message, currentPosition);
+            Debug.Log(clientIdLenght);
+
+            string clientId = "";
+            currentPosition += 4;
+
+            for (int j = 0; j < clientIdLenght; j++)
+            {
+                clientId += (char)message[currentPosition];
+                currentPosition += 1;
+            }
+
+            Debug.Log(clientId + " : " + Id);
+            newPlayerList.Add(new Player(Id, clientId));
+        }
+
+        return newPlayerList;
     }
 
     public override MessageType GetMessageType()
@@ -76,28 +93,25 @@ public abstract class NetServerToClientHandShake : OrderMessage<(long, int, int)
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(data.Item1));
-        outData.AddRange(BitConverter.GetBytes(data.Item2));
-        outData.AddRange(BitConverter.GetBytes(data.Item3));
 
-        outData.Add((byte)data.Item1);
-        outData.Add((byte)data.Item2);
-        outData.Add((byte)data.Item3);
+        outData.AddRange(BitConverter.GetBytes(data.Count));
 
-        Debug.Log(outData);
+        for (int i = 0; i < data.Count; i++)
+        {
+            outData.AddRange(BitConverter.GetBytes(data[i].ID));
+            outData.AddRange(BitConverter.GetBytes(data[i].clientId.Length));
+
+            for (int j = 0; j < data[i].clientId.Length; j++)
+            {
+                outData.Add((byte)data[i].clientId[j]);
+            }
+        }
 
         return outData.ToArray();
     }
 }
-
-public abstract class NetClientToServerHandShake : OrderMessage<(long, int)>
+public class NetToServerHandShake : OrderMessage<(int, string)>
 {
-    public NetClientToServerHandShake(int ID, int clientID) 
-    {
-        this.data.Item1 = ID;
-        this.data.Item2 = clientID;
-    }
-
     public override MessageType ReadMsgID(byte[] message)
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(message);
@@ -105,16 +119,21 @@ public abstract class NetClientToServerHandShake : OrderMessage<(long, int)>
         return type;
     }
 
-    public override (long, int) Deserialize(byte[] message)
+    public override (int, string) Deserialize(byte[] message)
     {
-        (long, int) outData;
+        (int, string) outData;
 
         outData.Item1 = BitConverter.ToInt32(message, 4);
-        outData.Item2 = BitConverter.ToInt32(message, 8);
 
-        Debug.Log(outData);
+        outData.Item2 = "";
+        int messageLenght = BitConverter.ToInt32(message, 8);
 
-        return (outData.Item1, outData.Item2);
+        for (int i = 0; i < messageLenght; i++) 
+        {
+            outData.Item2 += (char)message[12 + i];
+        }
+
+        return outData;
     }
 
     public override MessageType GetMessageType()
@@ -128,26 +147,19 @@ public abstract class NetClientToServerHandShake : OrderMessage<(long, int)>
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
         outData.AddRange(BitConverter.GetBytes(data.Item1));
-        outData.AddRange(BitConverter.GetBytes(data.Item1));
+        outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
-        outData.Add((byte)data.Item1);
-        outData.Add((byte)data.Item2);
-
-        Debug.Log(outData);
+        for (int i = 0; i < data.Item2.Length; i++)
+        {
+            outData.Add((byte)data.Item2[i]);
+        }
 
         return outData.ToArray();
     }
 }
 
-public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
+public class NetVector3 : OrderMessage<UnityEngine.Vector3>
 {
-    private static ulong lastMsgID = 0;
-
-    public NetVector3(Vector3 data)
-    {
-        this.data = data;
-    }
-
     public override MessageType ReadMsgID(byte[] message)
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(message);
@@ -176,7 +188,7 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(lastMsgID++));
+        outData.AddRange(BitConverter.GetBytes(lastSenMsgID++));
         outData.AddRange(BitConverter.GetBytes(data.x));
         outData.AddRange(BitConverter.GetBytes(data.y));
         outData.AddRange(BitConverter.GetBytes(data.z));
@@ -185,27 +197,28 @@ public abstract class NetVector3 : OrderMessage<UnityEngine.Vector3>
     }
 }
 
-public class NetConsole : OrderMessage<string>
+public class NetConsole : OrderMessage<(int, string)>
 {
-    public NetConsole(string data)
-    {
-        this.data = data;
-    }
-
     public override MessageType ReadMsgID(byte[] message)
     {
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override string Deserialize(byte[] message)
+    public override (int, string) Deserialize(byte[] message)
     {
-        string outData;
+        (int, string) outData;
 
-        int stringLength = BitConverter.ToInt32(message, 4);
+        int baseByte = 12;
 
-        outData = Encoding.UTF8.GetString(message, 8, stringLength);
+        outData.Item1 = BitConverter.ToInt32(message, 4);
 
-        Debug.Log(outData);
+        outData.Item2 = " ";
+        int stringLenght = BitConverter.ToInt32(message, 8);
+
+        for (int i = 0; i < stringLenght; i++) 
+        {
+            outData.Item2 += (char)message[baseByte + i];
+        }
 
         return outData;
     }
@@ -220,11 +233,14 @@ public class NetConsole : OrderMessage<string>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(data.Length));
 
-        outData.AddRange(Encoding.UTF8.GetBytes(data));
+        outData.AddRange(BitConverter.GetBytes(data.Item1));
+        outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
-        Debug.Log(outData);
+        for (int i = 0; i < data.Item2.Length; i++) 
+        {
+            outData.Add((byte)data.Item2[i]);
+        }
 
         return outData.ToArray();
     }
