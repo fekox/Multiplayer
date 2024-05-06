@@ -7,7 +7,6 @@ using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.CompilerServices;
 using UnityEngine.UI;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 public enum MessageType
 {
@@ -30,9 +29,7 @@ public abstract class OrderMessage<T> : BaseMessage<T>
 {
     protected static ulong lastSenMsgID = 0;
 
-    protected static ulong msjID = 0;
-
-    protected static Player player;
+    protected ulong msjID = 0;
 
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
     public abstract MessageType ReadMsgID(byte[] message);
@@ -85,7 +82,7 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
 
     public override MessageType GetMessageType()
     {
-       return MessageType.ServerToClientHandShake;
+       return MessageType.ToClientHandShake;
     }
 
     public override byte[] Serialize()
@@ -138,7 +135,7 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
 
     public override MessageType GetMessageType()
     {
-        return MessageType.ClientToServerHandShake;
+        return MessageType.ToServerHandShake;
     }
 
     public override byte[] Serialize()

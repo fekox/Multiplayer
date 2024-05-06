@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Net;
 using UnityEngine;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 public class MessageManager : MonoBehaviourSingleton<MessageManager>
 {
@@ -21,56 +18,61 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
 
                 Player newPlayer = new Player(netToSeverHandShake.Deserialize(data).Item1, netToSeverHandShake.Deserialize(data).Item2);
 
-                newPlayer.ID = NetworkManager.Instance.;
-                newPlayer.clientId = netMessageToServer.Deseria1lize(data).Item2;
+                newPlayer.ID = NetworkManager.Instance.clientID;
+                newPlayer.clientId = netToSeverHandShake.Deserialize(data).Item2;
 
-                NetworkManager.Instance.addPlayer(newPlayer);
+                NetworkManager.Instance.AddPlayer(newPlayer);
 
-                netMessageToClient.data = NetworkManager.Instance.players;
+                netToClientHandShake.data = NetworkManager.Instance.playerList;
 
-                data = netMessageToClient.Serialize();
+                data = netToClientHandShake.Serialize();
 
-                NetworkManager.Instance.clientId++;
-                Debug.Log("add new client = Client Id: " + netMessageToClient.data[netMessageToClient.data.Count - 1].clientId + " - Id: " + netMessageToClient.data[netMessageToClient.data.Count - 1].id);
+                NetworkManager.Instance.clientID++;
+                Debug.Log("Add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].clientId + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
 
-                break;
+            break;
 
             case MessageType.ToClientHandShake:
 
-                NetworkManager.Instance.players = netMessageToClient.Deserialize(data);
-                for (int i = 0; i < NetworkManager.Instance.players.Count; i++)
+                NetworkManager.Instance.playerList = netToClientHandShake.Deserialize(data);
+
+                for (int i = 0; i < NetworkManager.Instance.playerList.Count; i++)
                 {
-                    if (NetworkManager.Instance.players[i].clientId == NetworkManager.Instance.playerData.clientId)
+                    if (NetworkManager.Instance.playerList[i].clientId == NetworkManager.Instance.player.clientId)
                     {
-                        NetworkManager.Instance.playerData.id = NetworkManager.Instance.players[i].id;
+                        NetworkManager.Instance.player.ID = NetworkManager.Instance.playerList[i].ID;
                         break;
                     }
                 }
 
-                break;
+            break;
 
             case MessageType.Console:
 
                 string playerName = "";
-                for (int i = 0; i < NetworkManager.Instance.players.Count; i++)
+
+                for (int i = 0; i < NetworkManager.Instance.playerList.Count; i++)
                 {
-                    if (NetworkManager.Instance.players[i].id == netCode.Deserialize(data).Item1)
+                    if (NetworkManager.Instance.playerList[i].ID == netConsole.Deserialize(data).Item1)
                     {
-                        playerName = NetworkManager.Instance.players[i].clientId;
+                        playerName = NetworkManager.Instance.playerList[i].clientId;
                         break;
                     }
                 }
 
-                ChatScreen.Instance.OnReceiveDataEvent(playerName + " : " + netCode.Deserialize(data).Item2);
-                break;
+                ChatScreen.Instance.OnReceiveDataEvent(playerName + ": " + netConsole.Deserialize(data).Item2);
+
+            break;
 
             case MessageType.Position:
 
-                break;
+            break;
 
             default:
+
                 Debug.LogError("Message type not found");
-                break;
+
+            break;
         }
 
         if (NetworkManager.Instance.isServer)
@@ -78,10 +80,10 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
             NetworkManager.Instance.Broadcast(data);
         }
 
-        return messageType;
+        return typeMessage;
     }
 
-    public void CheckMessage(byte[] message)
+    private void CheckMessage(byte[] message)
     {
         if (NetworkManager.Instance.isServer)
         {

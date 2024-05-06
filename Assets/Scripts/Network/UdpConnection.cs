@@ -7,7 +7,6 @@ public class UdpConnection
 {
     private struct DataReceived
     {
-        public string clientName;
         public byte[] data;
         public IPEndPoint ipEndPoint;
     }
@@ -49,8 +48,9 @@ public class UdpConnection
             while (dataReceivedQueue.Count > 0)
             {
                 DataReceived dataReceived = dataReceivedQueue.Dequeue();
+
                 if (receiver != null)
-                    receiver.OnReceiveData(dataReceived.clientName, dataReceived.data, dataReceived.ipEndPoint);
+                    receiver.OnReceiveData(dataReceived.data, dataReceived.ipEndPoint);
             }
         }
     }
@@ -67,9 +67,9 @@ public class UdpConnection
                 dataReceivedQueue.Enqueue(dataReceived);
             }
         }
+
         catch(SocketException e)
         {
-            // This happens when a client disconnects, as we fail to send to that port.
             UnityEngine.Debug.LogError("[UdpConnection] " + e.Message);
         }
 

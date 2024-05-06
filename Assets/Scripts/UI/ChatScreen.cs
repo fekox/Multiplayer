@@ -12,7 +12,6 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
     public Text messages;
     public InputField inputMessage;
     public NetConsole netConsole;
-
     protected override void Initialize()
     {
         inputMessage.onEndEdit.AddListener(OnEndEdit);

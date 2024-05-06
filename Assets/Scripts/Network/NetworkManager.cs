@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Net;
 using UnityEngine;
 
@@ -78,7 +79,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     private readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
     private readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
-    private List<Player> playerList;
+    public List<Player> playerList = new List<Player>();
     public Player player;
     public int clientID = 0;
 
@@ -98,6 +99,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
         connection = new UdpConnection(ip, port, this);
 
+        player = new Player(0, clientName);
+
         MessageManager.Instance.OnSendServerHandShake(player.ID, player.clientId);
     }
 
@@ -112,11 +115,12 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             ipToId[ip] = clientID;
 
             clients.Add(clientID, new Client(ip, id, Time.realtimeSinceStartup));
-
-            playerList.Add(new Player(clientID, player.clientId));
-
-            clientID++;
         }
+    }
+
+    public void AddPlayer(Player player) 
+    {
+        playerList.Add(player);
     }
 
     void RemoveClient(IPEndPoint ip)
@@ -132,6 +136,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         AddClient(ipEndpoint);
 
+        MessageManager.Instance.OnRecieveMessage(data, ipEndpoint);
+
         if (OnReceiveEvent != null)
             OnReceiveEvent.Invoke(data, ipEndpoint);
     }
@@ -139,6 +145,11 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     public void SendToServer(byte[] data)
     {
         connection.Send(data);
+    }
+
+    public void SendToClient(byte[] data, IPEndPoint ip) 
+    {
+        connection.Send(data, ip);
     }
 
     public void Broadcast(byte[] data)
@@ -154,7 +165,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     void Update()
     {
-        // Flush the data in main thread
         if (connection != null)
             connection.FlushReceiveData();
     }
