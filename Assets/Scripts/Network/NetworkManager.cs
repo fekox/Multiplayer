@@ -9,6 +9,7 @@ public struct Client
     public string clientName;
     public float timeStamp;
     public int id;
+    public int timer;
     public IPEndPoint ipEndPoint;
 
     public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
@@ -17,6 +18,7 @@ public struct Client
         this.timeStamp = timeStamp;
         this.id = id;
         this.ipEndPoint = ipEndPoint;
+        timer = 0;
     }
 
     public int GetClientID() 
@@ -71,7 +73,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         get; private set;
     }
 
-    public int TimeOut = 30;
+    public int TimeOut = 20;
 
     public Action<byte[], IPEndPoint> OnReceiveEvent;
 

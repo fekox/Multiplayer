@@ -1,21 +1,17 @@
-using System.Collections.Generic;
-using System.IO;
-using UnityEngine;
 using System;
-using System.Text;
-using System.Net;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.CompilerServices;
-using UnityEngine.UI;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
 public enum MessageType
 {
     ToServerHandShake = 0,
     ToClientHandShake = 1,
-    Console = 2,
-    Position = 3
+    Ping = 2,
+    Pong = 3,
+    Console = 4,
+    Position = 5
 }
-
 public abstract class BaseMessage<T>
 {
     public abstract byte[] Serialize();
@@ -24,7 +20,6 @@ public abstract class BaseMessage<T>
 
     public T data;
 }
-
 public abstract class OrderMessage<T> : BaseMessage<T>
 {
     protected static ulong lastSenMsgID = 0;
@@ -34,7 +29,53 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
     public abstract MessageType ReadMsgID(byte[] message);
 }
+public class NetToServerHandShake : OrderMessage<(int, string)>
+{
+    public override MessageType ReadMsgID(byte[] message)
+    {
+        MessageType type = (MessageType)BitConverter.ToUInt32(message);
 
+        return type;
+    }
+
+    public override (int, string) Deserialize(byte[] message)
+    {
+        (int, string) outData;
+
+        outData.Item1 = BitConverter.ToInt32(message, 4);
+
+        outData.Item2 = "";
+        int messageLenght = BitConverter.ToInt32(message, 8);
+
+        for (int i = 0; i < messageLenght; i++)
+        {
+            outData.Item2 += (char)message[12 + i];
+        }
+
+        return outData;
+    }
+
+    public override MessageType GetMessageType()
+    {
+        return MessageType.ToServerHandShake;
+    }
+
+    public override byte[] Serialize()
+    {
+        List<byte> outData = new List<byte>();
+
+        outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+        outData.AddRange(BitConverter.GetBytes(data.Item1));
+        outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
+
+        for (int i = 0; i < data.Item2.Length; i++)
+        {
+            outData.Add((byte)data.Item2[i]);
+        }
+
+        return outData.ToArray();
+    }
+}
 public class NetToClientHandShake : OrderMessage<List<Player>>
 {
     public override MessageType ReadMsgID(byte[] message) 
@@ -107,7 +148,7 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         return outData.ToArray();
     }
 }
-public class NetToServerHandShake : OrderMessage<(int, string)>
+public class Ping : OrderMessage<int>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
@@ -116,26 +157,15 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         return type;
     }
 
-    public override (int, string) Deserialize(byte[] message)
-    {
-        (int, string) outData;
-
-        outData.Item1 = BitConverter.ToInt32(message, 4);
-
-        outData.Item2 = "";
-        int messageLenght = BitConverter.ToInt32(message, 8);
-
-        for (int i = 0; i < messageLenght; i++) 
-        {
-            outData.Item2 += (char)message[12 + i];
-        }
-
-        return outData;
-    }
-
     public override MessageType GetMessageType()
     {
-        return MessageType.ToServerHandShake;
+        return MessageType.Ping;
+    }
+
+
+    public override int Deserialize(byte[] message)
+    {
+        return 0;
     }
 
     public override byte[] Serialize()
@@ -143,18 +173,50 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(data.Item1));
-        outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
-        for (int i = 0; i < data.Item2.Length; i++)
-        {
-            outData.Add((byte)data.Item2[i]);
-        }
+        outData.AddRange(BitConverter.GetBytes(data));
+
+        return outData.ToArray();
+    }
+
+    //public IEnumerator StartPing()
+    //{
+    //    while ( < NetworkManager.Instance.TimeOut) 
+    //    {
+            
+    //    }
+    //}
+}
+public class Pong : OrderMessage<int>
+{
+    public override MessageType ReadMsgID(byte[] message)
+    {
+        MessageType type = (MessageType)BitConverter.ToUInt32(message);
+
+        return type;
+    }
+
+    public override int Deserialize(byte[] message)
+    {
+        return 0;
+    }
+
+    public override MessageType GetMessageType()
+    {
+        return MessageType.Pong;
+    }
+
+    public override byte[] Serialize()
+    {
+        List<byte> outData = new List<byte>();
+
+        outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        outData.AddRange(BitConverter.GetBytes(data));
 
         return outData.ToArray();
     }
 }
-
 public class NetVector3 : OrderMessage<UnityEngine.Vector3>
 {
     public override MessageType ReadMsgID(byte[] message)
@@ -193,7 +255,6 @@ public class NetVector3 : OrderMessage<UnityEngine.Vector3>
         return outData.ToArray();
     }
 }
-
 public class NetConsole : OrderMessage<(int, string)>
 {
     public override MessageType ReadMsgID(byte[] message)
