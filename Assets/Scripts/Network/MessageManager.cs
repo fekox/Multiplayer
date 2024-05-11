@@ -41,8 +41,13 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
         NetworkManager.Instance.SendToServer(netToSeverHandShake.Serialize());
     }
 
-    public void StartPingPong()
+    public void StartPing()
     {
         NetworkManager.Instance.SendToServer(netPingPong.Serialize());
+    }
+
+    public void StartPong(IPEndPoint IP) 
+    {
+        NetworkManager.Instance.SendToClient(netPingPong.Serialize(), IP);
     }
 }

@@ -24,12 +24,12 @@ public class Client
         startTimer = true;
     }
 
-    public int GetClientID() 
+    public int GetClientID()
     {
         return id;
     }
 
-    public void SetClientID(int newID) 
+    public void SetClientID(int newID)
     {
         this.id = newID;
     }
@@ -41,7 +41,7 @@ public class Client
         newClient.ipEndPoint = ipEndPoint;
     }
 
-    public IPEndPoint GetIp() 
+    public IPEndPoint GetIp()
     {
         return ipEndPoint;
     }
@@ -60,10 +60,10 @@ public class Client
     {
         timer += Time.deltaTime;
 
-        Debug.Log("Time to disconect: " + timer + " || " + NetworkManager.Instance.TimeOut);
+        Debug.Log("Time to disconect player: " + timer + " || " + NetworkManager.Instance.TimeOut);
     }
 
-    public void ResetTimer() 
+    public void ResetTimer()
     {
         timer = 0;
     }
@@ -74,13 +74,13 @@ public struct Player
     public string clientId;
     public int ID;
 
-    public Player (int id, string name) 
+    public Player(int id, string name)
     {
         this.ID = id;
         this.clientId = name;
     }
 
-    public string GetPlayerName() 
+    public string GetPlayerName()
     {
         return clientId;
     }
@@ -104,6 +104,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     }
 
     public int TimeOut = 20;
+    public float serverTimer = 0;
 
     public Action<byte[], IPEndPoint> OnReceiveEvent;
 
@@ -111,21 +112,21 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
     public readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
-    public List<Player> playerList = new List<Player>();
-    public Player player;
-    public int clientID = 0;
 
     private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
     private NetConsole netConsole = new NetConsole();
-    private NetPingPong netPingPong = new NetPingPong();
+
+    public List<Player> playerList = new List<Player>();
+    public Player player;
+    public int clientID = 0;
 
     private void Update()
     {
         if (connection != null)
             connection.FlushReceiveData();
 
-        if (NetworkManager.Instance.isServer) 
+        if (isServer)
         {
             if (playerList.Count > 0)
             {
@@ -139,6 +140,11 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     }
                 }
             }
+        }
+
+        else
+        {
+            StartServerTimer();
         }
     }
 
@@ -162,7 +168,30 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
         MessageManager.Instance.OnSendServerHandShake(player.ID, player.clientId);
 
-        MessageManager.Instance.StartPingPong();
+        MessageManager.Instance.StartPing();
+    }
+
+    public void StartServerTimer()
+    {
+        if (playerList.Count > 0)
+        {
+            if (serverTimer < TimeOut)
+            {
+                serverTimer += Time.deltaTime;
+
+                Debug.Log("Time to close server: " + serverTimer + " || " + TimeOut);
+
+                if (serverTimer > TimeOut)
+                {
+                    Debug.Log("Close Server");
+                }
+            }
+        }
+    }
+
+    public void ResetServerTimer()
+    {
+        serverTimer = 0;
     }
 
     void AddClient(IPEndPoint ip)
@@ -179,7 +208,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
     }
 
-    public void AddPlayer(Player player) 
+    public void AddPlayer(Player player)
     {
         playerList.Add(player);
     }
@@ -209,7 +238,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         connection.Send(data);
     }
 
-    public void SendToClient(byte[] data, IPEndPoint ip) 
+    public void SendToClient(byte[] data, IPEndPoint ip)
     {
         connection.Send(data, ip);
     }
@@ -268,13 +297,14 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if (isServer)
                 {
-                    //Reseteo
                     clients[ipToId[Ip]].ResetTimer();
+                    MessageManager.Instance.StartPong(Ip);
                 }
 
                 else
                 {
-                    //
+                    ResetServerTimer();
+                    MessageManager.Instance.StartPing();
                 }
 
                 break;
