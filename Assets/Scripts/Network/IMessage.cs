@@ -7,10 +7,9 @@ public enum MessageType
 {
     ToServerHandShake = 0,
     ToClientHandShake = 1,
-    Ping = 2,
-    Pong = 3,
-    Console = 4,
-    Position = 5
+    PingPong = 2,
+    Console = 3,
+    Position = 4
 }
 public abstract class BaseMessage<T>
 {
@@ -91,7 +90,7 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         currentPosition += 4;
 
         int totalPlayers = BitConverter.ToInt32(message, currentPosition);
-        Debug.Log("total player: " + totalPlayers);
+        Debug.Log("Players: " + totalPlayers);
 
         currentPosition += 4;
 
@@ -103,7 +102,6 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
             currentPosition += 4;
 
             int clientIdLenght = BitConverter.ToInt32(message, currentPosition);
-            Debug.Log(clientIdLenght);
 
             string clientId = "";
             currentPosition += 4;
@@ -148,7 +146,7 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         return outData.ToArray();
     }
 }
-public class Ping : OrderMessage<int>
+public class NetPingPong : OrderMessage<int>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
@@ -159,7 +157,7 @@ public class Ping : OrderMessage<int>
 
     public override MessageType GetMessageType()
     {
-        return MessageType.Ping;
+        return MessageType.PingPong;
     }
 
 
@@ -173,46 +171,6 @@ public class Ping : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-
-        outData.AddRange(BitConverter.GetBytes(data));
-
-        return outData.ToArray();
-    }
-
-    //public IEnumerator StartPing()
-    //{
-    //    while ( < NetworkManager.Instance.TimeOut) 
-    //    {
-            
-    //    }
-    //}
-}
-public class Pong : OrderMessage<int>
-{
-    public override MessageType ReadMsgID(byte[] message)
-    {
-        MessageType type = (MessageType)BitConverter.ToUInt32(message);
-
-        return type;
-    }
-
-    public override int Deserialize(byte[] message)
-    {
-        return 0;
-    }
-
-    public override MessageType GetMessageType()
-    {
-        return MessageType.Pong;
-    }
-
-    public override byte[] Serialize()
-    {
-        List<byte> outData = new List<byte>();
-
-        outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-
-        outData.AddRange(BitConverter.GetBytes(data));
 
         return outData.ToArray();
     }

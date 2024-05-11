@@ -4,12 +4,14 @@ using System.Linq.Expressions;
 using System.Net;
 using UnityEngine;
 
-public struct Client
+public class Client
 {
     public string clientName;
     public float timeStamp;
     public int id;
-    public int timer;
+
+    public float timer;
+    public bool startTimer;
     public IPEndPoint ipEndPoint;
 
     public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
@@ -19,6 +21,7 @@ public struct Client
         this.id = id;
         this.ipEndPoint = ipEndPoint;
         timer = 0;
+        startTimer = true;
     }
 
     public int GetClientID() 
@@ -36,6 +39,33 @@ public struct Client
         newClient.id = id;
         newClient.timeStamp = timeStamp;
         newClient.ipEndPoint = ipEndPoint;
+    }
+
+    public IPEndPoint GetIp() 
+    {
+        return ipEndPoint;
+    }
+
+    public void SetStartTimer(bool newBool)
+    {
+        startTimer = newBool;
+    }
+
+    public void SetTimer(float playerTimer)
+    {
+        timer = playerTimer;
+    }
+
+    public void UpdateTimer()
+    {
+        timer += Time.deltaTime;
+
+        Debug.Log("Time to disconect: " + timer + " || " + NetworkManager.Instance.TimeOut);
+    }
+
+    public void ResetTimer() 
+    {
+        timer = 0;
     }
 }
 
@@ -79,11 +109,38 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     private UdpConnection connection;
 
-    private readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
-    private readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
+    public readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
+    public readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
     public List<Player> playerList = new List<Player>();
     public Player player;
     public int clientID = 0;
+
+    private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
+    private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
+    private NetConsole netConsole = new NetConsole();
+    private NetPingPong netPingPong = new NetPingPong();
+
+    private void Update()
+    {
+        if (connection != null)
+            connection.FlushReceiveData();
+
+        if (NetworkManager.Instance.isServer) 
+        {
+            if (playerList.Count > 0)
+            {
+                foreach (var client in clients)
+                {
+                    client.Value.UpdateTimer();
+
+                    if (client.Value.timer > TimeOut)
+                    {
+                        RemoveClient(client.Value.GetIp());
+                    }
+                }
+            }
+        }
+    }
 
     public void StartServer(int port)
     {
@@ -104,13 +161,15 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         player = new Player(0, clientName);
 
         MessageManager.Instance.OnSendServerHandShake(player.ID, player.clientId);
+
+        MessageManager.Instance.StartPingPong();
     }
 
     void AddClient(IPEndPoint ip)
     {
         if (!ipToId.ContainsKey(ip))
         {
-            Debug.Log("Adding client: " + ip.Address);
+            Debug.Log("Client IP: " + ip.Address);
 
             int id = clientID;
 
@@ -130,6 +189,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         if (ipToId.ContainsKey(ip))
         {
             Debug.Log("Removing client: " + ip.Address);
+
             clients.Remove(ipToId[ip]);
         }
     }
@@ -138,7 +198,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         AddClient(ipEndpoint);
 
-        MessageManager.Instance.OnRecieveMessage(data, ipEndpoint);
+        OnRecieveMessage(data, ipEndpoint);
 
         if (OnReceiveEvent != null)
             OnReceiveEvent.Invoke(data, ipEndpoint);
@@ -165,9 +225,94 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
     }
 
-    void Update()
+    public MessageType OnRecieveMessage(byte[] data, IPEndPoint Ip)
     {
-        if (connection != null)
-            connection.FlushReceiveData();
+        MessageType typeMessage = (MessageType)BitConverter.ToInt32(data, 0);
+
+        switch (typeMessage)
+        {
+            case MessageType.ToServerHandShake:
+
+                Player newPlayer = new Player(netToSeverHandShake.Deserialize(data).Item1, netToSeverHandShake.Deserialize(data).Item2);
+
+                newPlayer.ID = clientID;
+                newPlayer.clientId = netToSeverHandShake.Deserialize(data).Item2;
+
+                AddPlayer(newPlayer);
+
+                netToClientHandShake.data = playerList;
+
+                data = netToClientHandShake.Serialize();
+
+                clientID++;
+                Debug.Log("Add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].clientId + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
+
+                break;
+
+            case MessageType.ToClientHandShake:
+
+                playerList = netToClientHandShake.Deserialize(data);
+
+                for (int i = 0; i < playerList.Count; i++)
+                {
+                    if (playerList[i].clientId == player.clientId)
+                    {
+                        player.ID = playerList[i].ID;
+                        break;
+                    }
+                }
+
+                break;
+
+            case MessageType.PingPong:
+
+                if (isServer)
+                {
+                    //Reseteo
+                    clients[ipToId[Ip]].ResetTimer();
+                }
+
+                else
+                {
+                    //
+                }
+
+                break;
+
+            case MessageType.Console:
+
+                string playerName = "";
+
+                for (int i = 0; i < playerList.Count; i++)
+                {
+                    if (playerList[i].ID == netConsole.Deserialize(data).Item1)
+                    {
+                        playerName = playerList[i].clientId;
+                        break;
+                    }
+                }
+
+                ChatScreen.Instance.OnReceiveDataEvent(playerName + ": " + netConsole.Deserialize(data).Item2);
+                clients[ipToId[Ip]].ResetTimer();
+
+                break;
+
+            case MessageType.Position:
+
+                break;
+
+            default:
+
+                Debug.LogError("Message type not found");
+
+                break;
+        }
+
+        if (isServer)
+        {
+            Broadcast(data);
+        }
+
+        return typeMessage;
     }
 }
