@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum MessageType
@@ -11,6 +12,14 @@ public enum MessageType
     Console = 3,
     Position = 4
 }
+
+public enum Operations 
+{
+    Add = 0,
+    Substract = 1,
+    ShiftRight = 2,
+    ShiftLeft = 3
+}
 public abstract class BaseMessage<T>
 {
     public abstract byte[] Serialize();
@@ -18,6 +27,112 @@ public abstract class BaseMessage<T>
     public abstract MessageType GetMessageType();
 
     public T data;
+
+    public virtual void StarChecksum(List<byte> message)
+    {
+        uint checkSum = 0;
+        uint checkSum2 = 0;
+
+        foreach (byte bytes in message)
+        {
+            int temp = bytes % 4;
+
+            switch (temp)
+            {
+                case (int)Operations.Add:
+
+                    checkSum += bytes;
+                    checkSum2 += bytes;
+
+                break;
+
+                case (int)Operations.Substract:
+
+                    checkSum -= bytes;
+                    checkSum2 -= bytes;
+
+                break;
+
+                case (int)Operations.ShiftRight:
+
+                    checkSum >>= bytes;
+                    checkSum2 >>= bytes;
+
+                break;
+
+                case (int)Operations.ShiftLeft:
+
+                    checkSum <<= bytes;
+                    checkSum2 <<= bytes;
+
+                break;
+            }
+        }
+
+        message.AddRange(BitConverter.GetBytes(checkSum));
+        message.AddRange(BitConverter.GetBytes(checkSum2));
+    }
+
+    public virtual void ReciveChecksum(List<byte> message, out uint sum, out uint sum2) 
+    {
+        uint checkSum = 0;
+        uint checkSum2 = 0;
+
+        foreach (byte bytes in message)
+        {
+            int temp = bytes % 4;
+
+            switch (temp)
+            {
+                case (int)Operations.Add:
+
+                    checkSum += bytes;
+                    checkSum2 += bytes;
+
+                break;
+
+                case (int)Operations.Substract:
+
+                    checkSum -= bytes;
+                    checkSum2 -= bytes;
+
+                break;
+
+                case (int)Operations.ShiftRight:
+
+                    checkSum >>= bytes;
+                    checkSum2 >>= bytes;
+
+                break;
+
+                case (int)Operations.ShiftLeft:
+
+                    checkSum <<= bytes;
+                    checkSum2 <<= bytes;
+
+                break;
+            }
+        }
+
+        sum = checkSum - sizeof(uint) * 2; 
+        sum2 = checkSum2 - sizeof(uint) * 2; 
+    }
+
+    public virtual bool IsChecksumOk(byte[] message) 
+    {
+        ReciveChecksum(message.ToList<byte>(), out uint sum, out uint sum2);
+        
+        if (sum == BitConverter.ToUInt32(message, message.Length - sizeof(uint) * 2) &&
+            sum2 == BitConverter.ToUInt32(message, message.Length - sizeof(uint)))
+        {
+            return true;
+        }
+
+        else
+        {
+            return false;
+        }
+    }
 }
 public abstract class OrderMessage<T> : BaseMessage<T>
 {
@@ -77,7 +192,7 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
 }
 public class NetToClientHandShake : OrderMessage<List<Player>>
 {
-    public override MessageType ReadMsgID(byte[] message) 
+    public override MessageType ReadMsgID(byte[] message)
     {
         MessageType type = (MessageType)BitConverter.ToUInt32(message);
 
@@ -121,7 +236,7 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
 
     public override MessageType GetMessageType()
     {
-       return MessageType.ToClientHandShake;
+        return MessageType.ToClientHandShake;
     }
 
     public override byte[] Serialize()
@@ -231,7 +346,7 @@ public class NetConsole : OrderMessage<(int, string)>
         outData.Item2 = " ";
         int stringLenght = BitConverter.ToInt32(message, 8);
 
-        for (int i = 0; i < stringLenght; i++) 
+        for (int i = 0; i < stringLenght; i++)
         {
             outData.Item2 += (char)message[baseByte + i];
         }
@@ -244,7 +359,7 @@ public class NetConsole : OrderMessage<(int, string)>
         return MessageType.Console;
     }
 
-    public override byte[] Serialize()  
+    public override byte[] Serialize()
     {
         List<byte> outData = new List<byte>();
 
@@ -253,7 +368,7 @@ public class NetConsole : OrderMessage<(int, string)>
         outData.AddRange(BitConverter.GetBytes(data.Item1));
         outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
-        for (int i = 0; i < data.Item2.Length; i++) 
+        for (int i = 0; i < data.Item2.Length; i++)
         {
             outData.Add((byte)data.Item2[i]);
         }
