@@ -36,8 +36,9 @@ public class UdpConnection
         connection.BeginReceive(OnReceive, null);
     }
 
-    public void Close()
+    public void DisposeAndClose()
     {
+        connection.Dispose();
         connection.Close();
     }
 

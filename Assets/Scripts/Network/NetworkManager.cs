@@ -128,18 +128,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
         if (isServer)
         {
-            if (playerList.Count > 0)
-            {
-                foreach (var client in clients)
-                {
-                    client.Value.UpdateTimer();
-
-                    if (client.Value.timer > TimeOut)
-                    {
-                        RemoveClient(client.Value.GetIp());
-                    }
-                }
-            }
+            StartClientTimer();
         }
 
         else
@@ -153,6 +142,30 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         isServer = true;
         this.port = port;
         connection = new UdpConnection(port, this);
+    }
+
+    public void StartServerTimer()
+    {
+        if (playerList.Count > 0)
+        {
+            if (serverTimer < TimeOut)
+            {
+                serverTimer += Time.deltaTime;
+
+                Debug.Log("Time to close server: " + serverTimer + " || " + TimeOut);
+
+                if (serverTimer > TimeOut)
+                {
+                    Debug.Log("Close Server");
+                    connection.DisposeAndClose();
+                }
+            }
+        }
+    }
+
+    public void ResetServerTimer()
+    {
+        serverTimer = 0;
     }
 
     public void StartClient(string clientName, IPAddress ip, int port)
@@ -171,27 +184,20 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         MessageManager.Instance.StartPing();
     }
 
-    public void StartServerTimer()
+    public void StartClientTimer() 
     {
         if (playerList.Count > 0)
         {
-            if (serverTimer < TimeOut)
+            foreach (var client in clients)
             {
-                serverTimer += Time.deltaTime;
+                client.Value.UpdateTimer();
 
-                Debug.Log("Time to close server: " + serverTimer + " || " + TimeOut);
-
-                if (serverTimer > TimeOut)
+                if (client.Value.timer > TimeOut)
                 {
-                    Debug.Log("Close Server");
+                    RemoveClient(client.Value.GetIp());
                 }
             }
         }
-    }
-
-    public void ResetServerTimer()
-    {
-        serverTimer = 0;
     }
 
     void AddClient(IPEndPoint ip)
