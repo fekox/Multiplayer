@@ -28,42 +28,44 @@ public abstract class BaseMessage<T>
 
     public T data;
 
-    public virtual void StarChecksum(List<byte> message)
+    public virtual void StartChecksum(List<byte> message)
     {
         uint checkSum = 0;
         uint checkSum2 = 0;
 
-        foreach (byte bytes in message)
+        int messageLenght = message.Count;
+
+        for (int i = 0; i < messageLenght; i++) 
         {
-            int temp = bytes % 4;
+            int temp = message[i] % 4;
 
             switch (temp)
             {
                 case (int)Operations.Add:
 
-                    checkSum += bytes;
-                    checkSum2 += bytes;
+                    checkSum += message[i];
+                    checkSum2 <<= message[i];
 
                 break;
 
                 case (int)Operations.Substract:
 
-                    checkSum -= bytes;
-                    checkSum2 -= bytes;
+                    checkSum -= message[i];
+                    checkSum2 -= message[i];
 
                 break;
 
                 case (int)Operations.ShiftRight:
 
-                    checkSum >>= bytes;
-                    checkSum2 >>= bytes;
+                    checkSum >>= message[i];
+                    checkSum2 >>= message[i];
 
                 break;
 
                 case (int)Operations.ShiftLeft:
 
-                    checkSum <<= bytes;
-                    checkSum2 <<= bytes;
+                    checkSum <<= message[i];
+                    checkSum2 += message[i];
 
                 break;
             }
@@ -78,44 +80,46 @@ public abstract class BaseMessage<T>
         uint checkSum = 0;
         uint checkSum2 = 0;
 
-        foreach (byte bytes in message)
+        int messageLenght = message.Count - sizeof(uint) * 2;
+
+        for (int i = 0; i < message.Count; i++)
         {
-            int temp = bytes % 4;
+            int temp = message[i] % 4;
 
             switch (temp)
             {
                 case (int)Operations.Add:
 
-                    checkSum += bytes;
-                    checkSum2 += bytes;
+                    checkSum += message[i];
+                    checkSum2 <<= message[i];
 
                 break;
 
                 case (int)Operations.Substract:
 
-                    checkSum -= bytes;
-                    checkSum2 -= bytes;
+                    checkSum -= message[i];
+                    checkSum2 -= message[i];
 
                 break;
 
                 case (int)Operations.ShiftRight:
 
-                    checkSum >>= bytes;
-                    checkSum2 >>= bytes;
+                    checkSum >>= message[i];
+                    checkSum2 >>= message[i];
 
                 break;
 
                 case (int)Operations.ShiftLeft:
 
-                    checkSum <<= bytes;
-                    checkSum2 <<= bytes;
+                    checkSum <<= message[i];
+                    checkSum2 += message[i];
 
                 break;
             }
         }
 
-        sum = checkSum - sizeof(uint) * 2; 
-        sum2 = checkSum2 - sizeof(uint) * 2; 
+        sum = checkSum; 
+        sum2 = checkSum2; 
     }
 
     public virtual bool IsChecksumOk(byte[] message) 
@@ -186,6 +190,8 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         {
             outData.Add((byte)data.Item2[i]);
         }
+
+        StartChecksum(outData);
 
         return outData.ToArray();
     }
@@ -258,6 +264,8 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
             }
         }
 
+        StartChecksum(outData);
+
         return outData.ToArray();
     }
 }
@@ -286,6 +294,8 @@ public class NetPingPong : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        StartChecksum(outData);
 
         return outData.ToArray();
     }
@@ -324,6 +334,8 @@ public class NetVector3 : OrderMessage<UnityEngine.Vector3>
         outData.AddRange(BitConverter.GetBytes(data.x));
         outData.AddRange(BitConverter.GetBytes(data.y));
         outData.AddRange(BitConverter.GetBytes(data.z));
+
+        StartChecksum(outData);
 
         return outData.ToArray();
     }
@@ -371,6 +383,8 @@ public class NetConsole : OrderMessage<(int, string)>
         for (int i = 0; i < data.Item2.Length; i++)
         {
             outData.Add((byte)data.Item2[i]);
+
+            StartChecksum(outData);
         }
 
         return outData.ToArray();
