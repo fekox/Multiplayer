@@ -36,8 +36,8 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
 
     public void OnSendServerHandShake(int id, string name)
     {
-        netToSeverHandShake.data.Item1 = id;
-        netToSeverHandShake.data.Item2 = name;
+        netToSeverHandShake.data.ID = id;
+        netToSeverHandShake.data.clientId = name;
         NetworkManager.Instance.SendToServer(netToSeverHandShake.Serialize());
     }
 

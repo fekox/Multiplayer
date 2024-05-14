@@ -147,7 +147,7 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
     public abstract MessageType ReadMsgID(byte[] message);
 }
-public class NetToServerHandShake : OrderMessage<(int, string)>
+public class NetToServerHandShake : OrderMessage<Player>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
@@ -156,18 +156,18 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         return type;
     }
 
-    public override (int, string) Deserialize(byte[] message)
+    public override Player Deserialize(byte[] message)
     {
-        (int, string) outData;
+        Player outData;
 
-        outData.Item1 = BitConverter.ToInt32(message, 4);
+        outData.ID = BitConverter.ToInt32(message, 4);
 
-        outData.Item2 = "";
+        outData.clientId = " ";
         int messageLenght = BitConverter.ToInt32(message, 8);
 
         for (int i = 0; i < messageLenght; i++)
         {
-            outData.Item2 += (char)message[12 + i];
+            outData.clientId += (char)message[12 + i];
         }
 
         return outData;
@@ -183,12 +183,12 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(data.Item1));
-        outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
+        outData.AddRange(BitConverter.GetBytes(data.ID));
+        outData.AddRange(BitConverter.GetBytes(data.clientId.Length));
 
-        for (int i = 0; i < data.Item2.Length; i++)
+        for (int i = 0; i < data.clientId.Length; i++)
         {
-            outData.Add((byte)data.Item2[i]);
+            outData.Add((byte)data.clientId[i]);
         }
 
         StartChecksum(outData);
@@ -383,9 +383,9 @@ public class NetConsole : OrderMessage<(int, string)>
         for (int i = 0; i < data.Item2.Length; i++)
         {
             outData.Add((byte)data.Item2[i]);
-
-            StartChecksum(outData);
         }
+
+        StartChecksum(outData);
 
         return outData.ToArray();
     }

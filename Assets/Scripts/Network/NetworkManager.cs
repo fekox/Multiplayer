@@ -115,7 +115,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
+    private NetPingPong netPingPong = new NetPingPong();
     private NetConsole netConsole = new NetConsole();
+    private NetVector3 netVector3 = new NetVector3();
 
     public List<Player> playerList = new List<Player>();
     public Player player;
@@ -268,23 +270,66 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             case MessageType.ToServerHandShake:
 
-                Player newPlayer = new Player(netToSeverHandShake.Deserialize(data).Item1, netToSeverHandShake.Deserialize(data).Item2);
+                //if (netToSeverHandShake.IsChecksumOk(data)) 
+                //{
+                //    player = new Player(netToSeverHandShake.Deserialize(data).ID, netToSeverHandShake.Deserialize(data).clientId);
 
-                newPlayer.ID = clientID;
-                newPlayer.clientId = netToSeverHandShake.Deserialize(data).Item2;
+                //    player.ID = clientID;
+                //    player.clientId = netToSeverHandShake.Deserialize(data).clientId;
 
-                AddPlayer(newPlayer);
+                //    AddPlayer(player);
+
+                //    netToClientHandShake.data = playerList;
+
+                //    data = netToClientHandShake.Serialize();
+
+                //    clientID++;
+
+                //    Debug.Log(nameof(NetToServerHandShake) + ": message is ok.");
+                //}
+
+                //else 
+                //{
+                //    Debug.Log(nameof(NetToServerHandShake) + ": message is corrupt.");
+                //}
+
+                player = new Player(netToSeverHandShake.Deserialize(data).ID, netToSeverHandShake.Deserialize(data).clientId);
+
+                player.ID = clientID;
+                player.clientId = netToSeverHandShake.Deserialize(data).clientId;
+
+                AddPlayer(player);
 
                 netToClientHandShake.data = playerList;
 
                 data = netToClientHandShake.Serialize();
 
                 clientID++;
-                Debug.Log("Add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].clientId + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
 
                 break;
 
             case MessageType.ToClientHandShake:
+
+                //if (netToClientHandShake.IsChecksumOk(data)) 
+                //{
+                //    playerList = netToClientHandShake.Deserialize(data);
+
+                //    for (int i = 0; i < playerList.Count; i++)
+                //    {
+                //        if (playerList[i].clientId == player.clientId)
+                //        {
+                //            player.ID = playerList[i].ID;
+                //            break;
+                //        }
+                //    }
+
+                //    Debug.Log(nameof(NetToClientHandShake) + ": message is ok.");
+                //}
+
+                //else 
+                //{
+                //    Debug.Log(nameof(NetToClientHandShake) + ": message is corrupt.");
+                //}
 
                 playerList = netToClientHandShake.Deserialize(data);
 
@@ -301,21 +346,55 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.PingPong:
 
-                if (isServer)
+                if (netPingPong.IsChecksumOk(data))
                 {
-                    clients[ipToId[Ip]].ResetTimer();
-                    MessageManager.Instance.StartPong(Ip);
+                    if (isServer)
+                    {
+                        clients[ipToId[Ip]].ResetTimer();
+                        MessageManager.Instance.StartPong(Ip);
+                    }
+
+                    else
+                    {
+                        ResetServerTimer();
+                        MessageManager.Instance.StartPing();
+                    }
+
+                    Debug.Log(nameof(NetPingPong) + ": message is ok.");
                 }
 
-                else
+                else 
                 {
-                    ResetServerTimer();
-                    MessageManager.Instance.StartPing();
+                    Debug.Log(nameof(NetPingPong) + ": message is corrupt.");
                 }
 
                 break;
 
             case MessageType.Console:
+
+                //if (netConsole.IsChecksumOk(data))
+                //{
+                //    string playerName = "";
+
+                //    for (int i = 0; i < playerList.Count; i++)
+                //    {
+                //        if (playerList[i].ID == netConsole.Deserialize(data).Item1)
+                //        {
+                //            playerName = playerList[i].clientId;
+                //            break;
+                //        }
+                //    }
+
+                //    ChatScreen.Instance.OnReceiveDataEvent(playerName + ": " + netConsole.Deserialize(data).Item2);
+                //    clients[ipToId[Ip]].ResetTimer();
+
+                //    Debug.Log(nameof(NetConsole) + ": message is ok.");
+                //}
+
+                //else 
+                //{
+                //    Debug.Log(nameof(NetConsole) + ": message is corrupt.");
+                //}
 
                 string playerName = "";
 
@@ -334,6 +413,16 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 break;
 
             case MessageType.Position:
+
+                if(netVector3.IsChecksumOk(data)) 
+                {
+                
+                }
+
+                else 
+                {
+                
+                }
 
                 break;
 
