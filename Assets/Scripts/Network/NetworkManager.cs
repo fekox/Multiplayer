@@ -71,18 +71,23 @@ public class Client
 
 public struct Player
 {
-    public string clientId;
+    public string tagName;
     public int ID;
 
     public Player(int id, string name)
     {
         this.ID = id;
-        this.clientId = name;
+        this.tagName = name;
     }
 
     public string GetPlayerName()
     {
-        return clientId;
+        return tagName;
+    }
+
+    public int GetPlayerID() 
+    {
+        return ID;
     }
 }
 
@@ -118,9 +123,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private NetPingPong netPingPong = new NetPingPong();
     private NetConsole netConsole = new NetConsole();
     private NetVector3 netVector3 = new NetVector3();
-
+    public Player playerData;
     public List<Player> playerList = new List<Player>();
-    public Player player;
     public int clientID = 0;
 
     private void Update()
@@ -179,9 +183,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
         connection = new UdpConnection(ip, port, this);
 
-        player = new Player(0, clientName);
+        playerData = new Player(0, clientName);
 
-        MessageManager.Instance.OnSendServerHandShake(player.ID, player.clientId);
+        MessageManager.Instance.OnSendServerHandShake(playerData.ID, playerData.tagName);
 
         MessageManager.Instance.StartPing();
     }
@@ -196,13 +200,14 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if (client.Value.timer > TimeOut)
                 {
+                    RemovePlayer(playerData.ID);
                     RemoveClient(client.Value.GetIp());
                 }
             }
         }
     }
 
-    void AddClient(IPEndPoint ip)
+    void AddClient(IPEndPoint ip, string name)
     {
         if (!ipToId.ContainsKey(ip))
         {
@@ -213,6 +218,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             ipToId[ip] = clientID;
 
             clients.Add(clientID, new Client(ip, id, Time.realtimeSinceStartup));
+            AddPlayer(new Player(clientID, name));
+
+            clientID++;
         }
     }
 
@@ -221,6 +229,16 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         playerList.Add(player);
     }
 
+    public void RemovePlayer(int playerID) 
+    {
+        for (int i = 0; i < playerList.Count; i++) 
+        {
+            if (playerID == playerList[i].ID)
+            {
+                playerList.Remove(playerList[i]);
+            }
+        }
+    }
     void RemoveClient(IPEndPoint ip)
     {
         if (ipToId.ContainsKey(ip))
@@ -233,8 +251,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public void OnReceiveData(byte[] data, IPEndPoint ipEndpoint)
     {
-        AddClient(ipEndpoint);
-
         OnRecieveMessage(data, ipEndpoint);
 
         if (OnReceiveEvent != null)
@@ -270,74 +286,29 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             case MessageType.ToServerHandShake:
 
-                //if (netToSeverHandShake.IsChecksumOk(data)) 
-                //{
-                //    player = new Player(netToSeverHandShake.Deserialize(data).ID, netToSeverHandShake.Deserialize(data).clientId);
+                (int, string) info = netToSeverHandShake.Deserialize(data);
 
-                //    player.ID = clientID;
-                //    player.clientId = netToSeverHandShake.Deserialize(data).clientId;
-
-                //    AddPlayer(player);
-
-                //    netToClientHandShake.data = playerList;
-
-                //    data = netToClientHandShake.Serialize();
-
-                //    clientID++;
-
-                //    Debug.Log(nameof(NetToServerHandShake) + ": message is ok.");
-                //}
-
-                //else 
-                //{
-                //    Debug.Log(nameof(NetToServerHandShake) + ": message is corrupt.");
-                //}
-
-                player = new Player(netToSeverHandShake.Deserialize(data).ID, netToSeverHandShake.Deserialize(data).clientId);
-
-                player.ID = clientID;
-                player.clientId = netToSeverHandShake.Deserialize(data).clientId;
-
-                AddPlayer(player);
+                AddClient(Ip, info.Item2);
 
                 netToClientHandShake.data = playerList;
 
                 data = netToClientHandShake.Serialize();
 
-                clientID++;
+                Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
 
                 break;
 
             case MessageType.ToClientHandShake:
 
-                //if (netToClientHandShake.IsChecksumOk(data)) 
-                //{
-                //    playerList = netToClientHandShake.Deserialize(data);
-
-                //    for (int i = 0; i < playerList.Count; i++)
-                //    {
-                //        if (playerList[i].clientId == player.clientId)
-                //        {
-                //            player.ID = playerList[i].ID;
-                //            break;
-                //        }
-                //    }
-
-                //    Debug.Log(nameof(NetToClientHandShake) + ": message is ok.");
-                //}
-
-                //else 
-                //{
-                //    Debug.Log(nameof(NetToClientHandShake) + ": message is corrupt.");
-                //}
-
                 playerList = netToClientHandShake.Deserialize(data);
 
                 for (int i = 0; i < playerList.Count; i++)
                 {
-                    if (playerList[i].clientId == player.clientId)
+                    Debug.Log("Id:" + playerList[i].ID + " Name:" + playerList[i].tagName);
+
+                    if (playerList[i].tagName == playerData.tagName)
                     {
-                        player.ID = playerList[i].ID;
+                        playerData.ID = playerList[i].ID;
                         break;
                     }
                 }
@@ -372,43 +343,29 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.Console:
 
-                //if (netConsole.IsChecksumOk(data))
-                //{
-                //    string playerName = "";
-
-                //    for (int i = 0; i < playerList.Count; i++)
-                //    {
-                //        if (playerList[i].ID == netConsole.Deserialize(data).Item1)
-                //        {
-                //            playerName = playerList[i].clientId;
-                //            break;
-                //        }
-                //    }
-
-                //    ChatScreen.Instance.OnReceiveDataEvent(playerName + ": " + netConsole.Deserialize(data).Item2);
-                //    clients[ipToId[Ip]].ResetTimer();
-
-                //    Debug.Log(nameof(NetConsole) + ": message is ok.");
-                //}
-
-                //else 
-                //{
-                //    Debug.Log(nameof(NetConsole) + ": message is corrupt.");
-                //}
-
-                string playerName = "";
-
-                for (int i = 0; i < playerList.Count; i++)
+                if (netConsole.IsChecksumOk(data))
                 {
-                    if (playerList[i].ID == netConsole.Deserialize(data).Item1)
+                    string playerName = "";
+
+                    for (int i = 0; i < playerList.Count; i++)
                     {
-                        playerName = playerList[i].clientId;
-                        break;
+                        if (playerList[i].ID == netConsole.Deserialize(data).Item1)
+                        {
+                            playerName = playerList[i].tagName;
+                            break;
+                        }
                     }
+
+                    ChatScreen.Instance.OnReceiveDataEvent(playerName + ": " + netConsole.Deserialize(data).Item2);
+                    clients[ipToId[Ip]].ResetTimer();
+
+                    Debug.Log(nameof(NetConsole) + ": message is ok.");
                 }
 
-                ChatScreen.Instance.OnReceiveDataEvent(playerName + ": " + netConsole.Deserialize(data).Item2);
-                clients[ipToId[Ip]].ResetTimer();
+                else
+                {
+                    Debug.Log(nameof(NetConsole) + ": message is corrupt.");
+                }
 
                 break;
 

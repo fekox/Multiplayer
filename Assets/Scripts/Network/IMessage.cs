@@ -82,7 +82,7 @@ public abstract class BaseMessage<T>
 
         int messageLenght = message.Count - sizeof(uint) * 2;
 
-        for (int i = 0; i < message.Count; i++)
+        for (int i = 0; i < messageLenght; i++)
         {
             int temp = message[i] % 4;
 
@@ -147,7 +147,7 @@ public abstract class OrderMessage<T> : BaseMessage<T>
     protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
     public abstract MessageType ReadMsgID(byte[] message);
 }
-public class NetToServerHandShake : OrderMessage<Player>
+public class NetToServerHandShake : OrderMessage<(int, string)>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
@@ -156,18 +156,18 @@ public class NetToServerHandShake : OrderMessage<Player>
         return type;
     }
 
-    public override Player Deserialize(byte[] message)
+    public override (int, string) Deserialize(byte[] message)
     {
-        Player outData;
+        (int, string) outData;
 
-        outData.ID = BitConverter.ToInt32(message, 4);
+        outData.Item1 = BitConverter.ToInt32(message, 4);
 
-        outData.clientId = " ";
+        outData.Item2 = " ";
         int messageLenght = BitConverter.ToInt32(message, 8);
 
         for (int i = 0; i < messageLenght; i++)
         {
-            outData.clientId += (char)message[12 + i];
+            outData.Item2 += (char)message[12 + i];
         }
 
         return outData;
@@ -183,15 +183,13 @@ public class NetToServerHandShake : OrderMessage<Player>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(data.ID));
-        outData.AddRange(BitConverter.GetBytes(data.clientId.Length));
+        outData.AddRange(BitConverter.GetBytes(data.Item1));
+        outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
-        for (int i = 0; i < data.clientId.Length; i++)
+        for (int i = 0; i < data.Item2.Length; i++)
         {
-            outData.Add((byte)data.clientId[i]);
+            outData.Add((byte)data.Item2[i]);
         }
-
-        StartChecksum(outData);
 
         return outData.ToArray();
     }
@@ -207,33 +205,31 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
 
     public override List<Player> Deserialize(byte[] message)
     {
-        int currentPosition = 0;
-        currentPosition += 4;
+        int currentBytes = 0;
 
-        int totalPlayers = BitConverter.ToInt32(message, currentPosition);
+        int totalPlayers = BitConverter.ToInt32(message, 4);
         Debug.Log("Players: " + totalPlayers);
-
-        currentPosition += 4;
 
         List<Player> newPlayerList = new List<Player>();
 
         for (int i = 0; i < totalPlayers; i++)
         {
-            int Id = BitConverter.ToInt32(message, currentPosition);
-            currentPosition += 4;
+            int Id = BitConverter.ToInt32(message, 8 + currentBytes);
 
-            int clientIdLenght = BitConverter.ToInt32(message, currentPosition);
+            int clientIdLenght = BitConverter.ToInt32(message, 8 + currentBytes + 4);
+
+            Debug.Log("Name Lenght:" + clientIdLenght);
 
             string clientId = "";
-            currentPosition += 4;
 
-            for (int j = 0; j < clientIdLenght; j++)
+            for (int j = 1; j < clientIdLenght; j++)
             {
-                clientId += (char)message[currentPosition];
-                currentPosition += 1;
+                clientId += (char)message[8 + currentBytes + 8 + j];
             }
 
-            Debug.Log(clientId + " : " + Id);
+            currentBytes += clientIdLenght + 8;
+
+            Debug.Log(clientId + " || ID:" + Id);
             newPlayerList.Add(new Player(Id, clientId));
         }
 
@@ -256,15 +252,13 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         for (int i = 0; i < data.Count; i++)
         {
             outData.AddRange(BitConverter.GetBytes(data[i].ID));
-            outData.AddRange(BitConverter.GetBytes(data[i].clientId.Length));
+            outData.AddRange(BitConverter.GetBytes(data[i].tagName.Length));
 
-            for (int j = 0; j < data[i].clientId.Length; j++)
+            for (int j = 0; j < data[i].tagName.Length; j++)
             {
-                outData.Add((byte)data[i].clientId[j]);
+                outData.Add((byte)data[i].tagName[j]);
             }
         }
-
-        StartChecksum(outData);
 
         return outData.ToArray();
     }

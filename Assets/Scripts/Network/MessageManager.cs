@@ -23,8 +23,10 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
 
     public void OnSendConsoleMessage(string message)
     {
-        netConsole.data.Item1 = NetworkManager.Instance.player.ID;
+        netConsole.data.Item1 = NetworkManager.Instance.playerData.ID;
         netConsole.data.Item2 = message;
+
+        Debug.Log(netConsole.data.Item1);
 
         if (NetworkManager.Instance.isServer)
         {
@@ -36,8 +38,8 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
 
     public void OnSendServerHandShake(int id, string name)
     {
-        netToSeverHandShake.data.ID = id;
-        netToSeverHandShake.data.clientId = name;
+        netToSeverHandShake.data.Item1 = id;
+        netToSeverHandShake.data.Item2 = name;
         NetworkManager.Instance.SendToServer(netToSeverHandShake.Serialize());
     }
 
