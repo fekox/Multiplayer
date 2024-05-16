@@ -5,6 +5,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [SerializeField] private GameObject playerSprite;
+
     private Rigidbody2D _rigidbody2D;
 
     private Vector2 movementInput;
@@ -25,5 +27,34 @@ public class PlayerMovement : MonoBehaviour
     public void MoveLogic()
     {
         _rigidbody2D.velocity = (movementInput * speed) * Time.deltaTime;
+
+        PlayerFlipX();
+        PlayerFlipY();
+    }
+
+    public void PlayerFlipX() 
+    {
+        if (movementInput.x > 0)
+        {
+            playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, -90f);
+        }
+
+        if (movementInput.x < 0)
+        {
+            playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 90f);
+        }
+    }
+
+    public void PlayerFlipY() 
+    {
+        if (movementInput.y > 0)
+        {
+            playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 0f);
+        }
+
+        if (movementInput.y < 0)
+        {
+            playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 180f);
+        }
     }
 }
