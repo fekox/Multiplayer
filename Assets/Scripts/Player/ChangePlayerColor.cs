@@ -10,7 +10,7 @@ public class ChangePlayerColor : MonoBehaviour
 
     void Start()
     {
-        int randColor = Random.Range(1, 8);
+        int randColor = Random.Range(1, 7);
 
         switch (randColor)
         {
@@ -23,26 +23,22 @@ public class ChangePlayerColor : MonoBehaviour
                 break;
 
             case 3:
-                newColor = Color.black;
-                break;
-
-            case 4:
                 newColor = Color.cyan;
                 break;
 
-            case 5:
+            case 4:
                 newColor = Color.green;
                 break;
 
-            case 6:
+            case 5:
                 newColor = Color.gray;
                 break;
 
-            case 7:
+            case 6:
                 newColor = Color.yellow;
                 break;
 
-            case 8:
+            case 7:
                 newColor = Color.magenta;
                 break;
         }
