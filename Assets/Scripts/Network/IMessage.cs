@@ -44,7 +44,7 @@ public abstract class BaseMessage<T>
                 case (int)Operations.Add:
 
                     checkSum += message[i];
-                    checkSum2 <<= message[i];
+                    checkSum2 += message[i];
 
                 break;
 
@@ -65,7 +65,7 @@ public abstract class BaseMessage<T>
                 case (int)Operations.ShiftLeft:
 
                     checkSum <<= message[i];
-                    checkSum2 += message[i];
+                    checkSum2 <<= message[i];
 
                 break;
             }
@@ -91,7 +91,7 @@ public abstract class BaseMessage<T>
                 case (int)Operations.Add:
 
                     checkSum += message[i];
-                    checkSum2 <<= message[i];
+                    checkSum2 += message[i];
 
                 break;
 
@@ -112,7 +112,7 @@ public abstract class BaseMessage<T>
                 case (int)Operations.ShiftLeft:
 
                     checkSum <<= message[i];
-                    checkSum2 += message[i];
+                    checkSum2 <<= message[i];
 
                 break;
             }
