@@ -13,7 +13,6 @@ public class PlayerMovement : MonoBehaviour
 
     public float speed = 3.0f;
 
-
     private void Awake()
     {
         _rigidbody2D = GetComponent<Rigidbody2D>();
@@ -54,7 +53,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (movementInput.y < 0)
         {
-            playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 180f);
+            playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 180f);       
         }
     }
 }
