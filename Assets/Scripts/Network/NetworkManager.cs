@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Net;
+using TMPro;
 using UnityEngine;
 
 public class Client
@@ -93,6 +94,17 @@ public struct Player
 
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
 {
+    [SerializeField] private TextMeshProUGUI latencyText;
+    [SerializeField] private GameObject latencyGO;
+
+    private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
+    private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
+    private NetPingPong netPingPong = new NetPingPong();
+    private NetConsole netConsole = new NetConsole();
+    private NetVector3 netVector3 = new NetVector3();
+
+    private UdpConnection connection;
+
     public IPAddress ipAddress
     {
         get; private set;
@@ -113,16 +125,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public Action<byte[], IPEndPoint> OnReceiveEvent;
 
-    private UdpConnection connection;
-
     public readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
     public readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
 
-    private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
-    private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
-    private NetPingPong netPingPong = new NetPingPong();
-    private NetConsole netConsole = new NetConsole();
-    private NetVector3 netVector3 = new NetVector3();
     public Player playerData;
     public List<Player> playerList = new List<Player>();
     public int clientID = 0;
@@ -148,6 +153,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         isServer = true;
         this.port = port;
         connection = new UdpConnection(port, this);
+        latencyGO.SetActive(true);
     }
 
     public void StartServerTimer()
@@ -159,6 +165,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 serverTimer += Time.deltaTime;
 
                 Debug.Log("Time to close server: " + serverTimer + " || " + TimeOut);
+
+                latencyText.text = "Latency: " + serverTimer.ToString();
 
                 if (serverTimer > TimeOut)
                 {
@@ -185,6 +193,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
         playerData = new Player(0, clientName);
 
+        latencyGO.SetActive(true);
+
         MessageManager.Instance.OnSendServerHandShake(playerData.ID, playerData.tagName);
 
         MessageManager.Instance.StartPing();
@@ -197,6 +207,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             foreach (var client in clients)
             {
                 client.Value.UpdateTimer();
+
+                latencyText.text = "Latency: " + client.Value.timer.ToString();
 
                 if (client.Value.timer > TimeOut)
                 {
