@@ -5,18 +5,18 @@ using UnityEngine;
 public class PlayerBullet : MonoBehaviour
 {
     [Header("SetUp")]
-    [SerializeField] private float bulletSpeed = 50f;
-
     [SerializeField] private Rigidbody2D _rigidbody2D;
+
+    [SerializeField] private float bulletSpeed = 50f;
 
     [SerializeField] private float bulletLifeTime = 4f;
 
+    [SerializeField] private int bulletDamage;
+
+    [SerializeField] private string playerTag = "Player";
+
     private float maxBulletLifeTime;
 
-    private void Awake()
-    {
-        _rigidbody2D = GetComponent<Rigidbody2D>();
-    }
     private void Start()
     {
         maxBulletLifeTime = bulletLifeTime;
@@ -34,6 +34,14 @@ public class PlayerBullet : MonoBehaviour
         maxBulletLifeTime -= Time.deltaTime;
 
         if (maxBulletLifeTime <= 0)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D bullet)
+    {
+        if (bullet.gameObject.CompareTag(playerTag)) 
         {
             Destroy(gameObject);
         }
