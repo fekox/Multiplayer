@@ -32,7 +32,12 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (startGame) 
+        GameTimer();
+    }
+
+    public void GameTimer() 
+    {
+        if (startGame)
         {
             int oneMinute = 60;
 
@@ -44,7 +49,7 @@ public class GameManager : MonoBehaviour
             timerText.text = string.Format("{00:00}:{1:00}", minutes, seconds);
         }
 
-        if (timerSeg <= 0) 
+        if (timerSeg <= 0)
         {
             startGame = false;
         }
