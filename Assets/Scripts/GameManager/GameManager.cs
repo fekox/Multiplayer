@@ -15,21 +15,6 @@ public class GameManager : MonoBehaviour
 
     private bool startGame = true;
 
-    [Header("References")]
-    [SerializeField] private PlayerMovement playerMovement;
-
-    [SerializeField] private PlayerHealth playerHealth;
-
-    void FixedUpdate()
-    {
-        if(startGame)
-        {
-            playerMovement.MoveLogic();
-
-            playerHealth.UpdatePlayerHealth();
-        }
-    }
-
     void Update()
     {
         GameTimer();

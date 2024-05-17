@@ -35,6 +35,8 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
+        UpdatePlayerHealth();
+
         if (inmortal)
         {
             if(timer > 0)
