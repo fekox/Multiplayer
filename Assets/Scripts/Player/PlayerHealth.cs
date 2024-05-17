@@ -14,11 +14,21 @@ public class PlayerHealth : MonoBehaviour
 
     private int curretHealth = 0;
 
-    private bool isDead = false;  
+    private bool isDead = false;
 
     private void Start()
     {
+        StartTank();
+    }
+
+    public void StartTank() 
+    {
         SetCurrentHealth(maxHealth);
+
+        for (int i = 0; i < hearts.Count; i++)
+        {
+            hearts[i].SetActive(true);
+        }
     }
 
     public void TakeDamage(int damage)
