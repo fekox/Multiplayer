@@ -95,6 +95,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     [SerializeField] private GameObject ErrorPopup;
 
+    [SerializeField] private GameObject MaxPlayerPopup;
+
     [SerializeField] private GameObject chatScreen;
 
     [SerializeField] private string menuName = "Menu";
@@ -105,7 +107,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private NetConsole netConsole = new NetConsole();
     private NetVector3 netVector3 = new NetVector3();
     private NetSameName netSameName = new NetSameName();
-    private NetMaxPlayers netMaxPlayers = new NetMaxPlayers();
 
     private UdpConnection connection;
 
@@ -318,7 +319,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public bool CheckMaxPlayers(int currentPlayers) 
     {
-        int maxPlayers = 1;
+        int maxPlayers = 4;
 
         if(maxPlayers == currentPlayers) 
         {
@@ -368,7 +369,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if(CheckMaxPlayers(playerList.Count))
                 {
-                    data = netMaxPlayers.Serialize();
+                    MaxPlayerPopup.SetActive(true);
+                    chatScreen.SetActive(false);
                 }
 
                 else 
@@ -457,12 +459,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 ErrorPopup.SetActive(true);
                 chatScreen.SetActive(false);
 
-                break;
-
-            case MessageType.MaxPlayers:
-                Debug.LogError("Max Players");
-
-                chatScreen.SetActive(false);
                 break;
 
             default:
