@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using TMPro;
@@ -13,27 +13,25 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private GameObject playerPrefab;
 
+    [SerializeField] private NetworkManager networkManager;
+
+    private GameObject playerNameInstance;
+
+    private PlayerHud playerHud;
+
     [Header("Setup")]
+
+    [SerializeField] private bool startGame = false;
 
     private float timerSeg = 240;
 
     private int seconds;
     private int minutes;
 
-    private bool startGame = true;
-
-    public int currentPlayers;
-
-    private void Start()
+    public void StartGame() 
     {
-        if (currentPlayers > 0) 
-        {
-            SpawnPlayer();
-        }
-    }
+        startGame = true;
 
-    void Update()
-    {
         GameTimer();
     }
 
@@ -57,11 +55,14 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void SpawnPlayer() 
+    public void SpawnPlayer(string playerName) 
     {
-        for (int i = 0; i < currentPlayers; i++) 
-        {
-            Instantiate(playerPrefab, spawns[i].transform.position, spawns[i].transform.rotation);
-        }
+        int spawn = UnityEngine.Random.Range(0, 4);
+
+        playerNameInstance = Instantiate(playerPrefab, spawns[spawn].transform.position, spawns[spawn].transform.rotation);
+
+        playerHud = playerNameInstance.GetComponent<PlayerHud>();
+
+        playerHud.SetPlayerName(playerName);
     }
 }
