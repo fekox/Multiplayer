@@ -60,8 +60,6 @@ public class Client
     public void UpdateTimer()
     {
         timer += Time.deltaTime;
-
-        Debug.Log("Time to disconect player: " + timer + " || " + NetworkManager.Instance.TimeOut);
     }
 
     public void ResetTimer()
@@ -103,6 +101,10 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     [SerializeField] private TextMeshProUGUI latencyText;
     [SerializeField] private GameObject latencyGO;
+
+    [SerializeField] private GameObject ErrorPopup;
+
+    [SerializeField] private GameObject chatScreen;
 
     private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
@@ -184,8 +186,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             {
                 serverTimer += Time.deltaTime;
 
-                //Debug.Log("Time to close server: " + serverTimer + " || " + TimeOut);
-
                 latencyText.text = "Latency: " + serverTimer.ToString();
 
                 if (serverTimer > TimeOut)
@@ -229,8 +229,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             foreach (var client in clients)
             {
                 client.Value.UpdateTimer();
-
-                //latencyText.text = "Latency: " + client.Value.timer.ToString();
 
                 if (client.Value.timer > TimeOut)
                 {
@@ -312,6 +310,19 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
     }
 
+    public bool CheckAlreadyUseName(string newPlayerName)
+    {
+        for (int i = 0; i < playerList.Count; i++)
+        {
+            if (playerList[i].tagName == newPlayerName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public MessageType OnRecieveMessage(byte[] data, IPEndPoint Ip)
     {
         MessageType typeMessage = (MessageType)BitConverter.ToInt32(data, 0);
@@ -322,13 +333,25 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 (int, string) info = netToSeverHandShake.Deserialize(data);
 
-                AddClient(Ip, info.Item2);
+                if (CheckAlreadyUseName(info.Item2))
+                {
+                    List<byte> outData = new List<byte>();
 
-                netToClientHandShake.data = playerList;
+                    outData.AddRange(BitConverter.GetBytes((int)MessageType.SameName));
 
-                data = netToClientHandShake.Serialize();
+                    SendToClient(outData.ToArray(), Ip);
+                }
 
-                Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
+                else 
+                {
+                    AddClient(Ip, info.Item2);
+
+                    netToClientHandShake.data = playerList;
+
+                    data = netToClientHandShake.Serialize();
+
+                    Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
+                }
 
                 break;
 
@@ -338,8 +361,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 for (int i = 0; i < playerList.Count; i++)
                 {
-                    Debug.Log("Id:" + playerList[i].ID + " Name:" + playerList[i].tagName);
-
                     if (playerList[i].tagName == playerData.tagName)
                     {
                         playerData.ID = playerList[i].ID;
@@ -413,6 +434,13 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 {
                 
                 }
+
+                break;
+
+            case MessageType.SameName:
+
+                ErrorPopup.SetActive(true);
+                chatScreen.SetActive(false);
 
                 break;
 

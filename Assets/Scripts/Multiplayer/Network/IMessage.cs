@@ -10,7 +10,8 @@ public enum MessageType
     ToClientHandShake = 1,
     PingPong = 2,
     Console = 3,
-    Position = 4
+    Position = 4,
+    SameName = 5
 }
 
 public enum Operations 
