@@ -11,7 +11,8 @@ public enum MessageType
     PingPong = 2,
     Console = 3,
     Position = 4,
-    SameName = 5
+    SameName = 5,
+    MaxPlayers = 6
 }
 
 public enum Operations 
@@ -381,6 +382,66 @@ public class NetConsole : OrderMessage<(int, string)>
         }
 
         StartChecksum(outData);
+
+        return outData.ToArray();
+    }
+}
+public class NetSameName : OrderMessage<int>
+{
+    public override MessageType ReadMsgID(byte[] message)
+    {
+        return (MessageType)BitConverter.ToUInt32(message);
+    }
+
+    public override int Deserialize(byte[] message)
+    {
+        int outData;
+
+        outData = BitConverter.ToInt32(message, 4);
+
+        return outData;
+    }
+
+    public override MessageType GetMessageType()
+    {
+        return MessageType.SameName;
+    }
+
+    public override byte[] Serialize()
+    {
+        List<byte> outData = new List<byte>();
+
+        outData.AddRange(BitConverter.GetBytes((int)MessageType.SameName));
+
+        return outData.ToArray();
+    }
+}
+public class NetMaxPlayers : OrderMessage<int>
+{
+    public override MessageType ReadMsgID(byte[] message)
+    {
+        return (MessageType)BitConverter.ToUInt32(message);
+    }
+
+    public override int Deserialize(byte[] message)
+    {
+        int outData;
+
+        outData = BitConverter.ToInt32(message, 4);
+
+        return outData;
+    }
+
+    public override MessageType GetMessageType()
+    {
+        return MessageType.MaxPlayers;
+    }
+
+    public override byte[] Serialize()
+    {
+        List<byte> outData = new List<byte>();
+
+        outData.AddRange(BitConverter.GetBytes((int)MessageType.SameName));
 
         return outData.ToArray();
     }

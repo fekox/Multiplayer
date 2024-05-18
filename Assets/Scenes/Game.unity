@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 46849426}
   - component: {fileID: 46849428}
   - component: {fileID: 46849427}
-  m_Layer: 6
+  m_Layer: 5
   m_Name: MenuText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -521,7 +521,8 @@ MonoBehaviour:
   latencyGO: {fileID: 1477316165}
   ErrorPopup: {fileID: 289367045}
   chatScreen: {fileID: 1130635388}
-  TimeOut: 20
+  menuName: Menu
+  TimeOut: 10
 --- !u!4 &180350410
 Transform:
   m_ObjectHideFlags: 0
@@ -639,7 +640,7 @@ GameObject:
   - component: {fileID: 289367046}
   - component: {fileID: 289367048}
   - component: {fileID: 289367047}
-  m_Layer: 6
+  m_Layer: 5
   m_Name: ErrorPopUp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2347,7 +2348,7 @@ GameObject:
   - component: {fileID: 1273305367}
   - component: {fileID: 1273305369}
   - component: {fileID: 1273305368}
-  m_Layer: 6
+  m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3839,7 +3840,7 @@ GameObject:
   - component: {fileID: 2010527699}
   - component: {fileID: 2010527698}
   - component: {fileID: 2010527697}
-  m_Layer: 6
+  m_Layer: 5
   m_Name: Menu
   m_TagString: Untagged
   m_Icon: {fileID: 0}

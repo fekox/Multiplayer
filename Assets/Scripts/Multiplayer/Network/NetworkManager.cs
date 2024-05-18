@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Net;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Client
 {
@@ -11,7 +12,7 @@ public class Client
     public float timeStamp;
     public int id;
 
-    public float timer;
+    public DateTime timer = DateTime.UtcNow;
     public bool startTimer;
     public IPEndPoint ipEndPoint;
 
@@ -21,7 +22,7 @@ public class Client
         this.timeStamp = timeStamp;
         this.id = id;
         this.ipEndPoint = ipEndPoint;
-        timer = 0;
+
         startTimer = true;
     }
 
@@ -52,24 +53,14 @@ public class Client
         startTimer = newBool;
     }
 
-    public void SetTimer(float playerTimer)
-    {
-        timer = playerTimer;
-    }
-
-    public void UpdateTimer()
-    {
-        timer += Time.deltaTime;
-    }
-
-    public void ResetTimer()
-    {
-        timer = 0;
-    }
-
     public string GetClientName() 
     {
         return clientName;
+    }
+
+    public void ResetClientTimer() 
+    {
+        this.timer = DateTime.UtcNow;
     }
 }
 
@@ -106,15 +97,20 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     [SerializeField] private GameObject chatScreen;
 
+    [SerializeField] private string menuName = "Menu";
+
     private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
     private NetPingPong netPingPong = new NetPingPong();
     private NetConsole netConsole = new NetConsole();
     private NetVector3 netVector3 = new NetVector3();
+    private NetSameName netSameName = new NetSameName();
+    private NetMaxPlayers netMaxPlayers = new NetMaxPlayers();
 
     private UdpConnection connection;
 
-    private float serverTimer = 0;
+    private DateTime serverTimer = DateTime.UtcNow;
+    private DateTime lastMessageSended = DateTime.UtcNow;
 
     private int clientID = 0;
 
@@ -133,7 +129,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         get; private set;
     }
 
-    public int TimeOut = 20;
+    public int TimeOut = 10;
 
     public Action<byte[], IPEndPoint> OnReceiveEvent;
 
@@ -182,24 +178,15 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         if (playerList.Count > 0)
         {
-            if (serverTimer < TimeOut)
+            latencyText.text = "Latency: " + (DateTime.UtcNow - serverTimer).Seconds;
+
+            if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
             {
-                serverTimer += Time.deltaTime;
-
-                latencyText.text = "Latency: " + serverTimer.ToString();
-
-                if (serverTimer > TimeOut)
-                {
-                    Debug.Log("Close Server");
-                    connection.DisposeAndClose();
-                }
+                Debug.Log("Close Server");
+                connection.DisposeAndClose();
+                SceneManager.LoadScene(menuName);
             }
         }
-    }
-
-    public void ResetServerTimer()
-    {
-        serverTimer = 0;
     }
 
     public void StartClient(string clientName, IPAddress ip, int port)
@@ -228,15 +215,21 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             foreach (var client in clients)
             {
-                client.Value.UpdateTimer();
+                latencyText.text = "Latency: " + (DateTime.UtcNow - client.Value.timer).Seconds;
 
-                if (client.Value.timer > TimeOut)
+                if ((DateTime.UtcNow - client.Value.timer).Seconds > TimeOut) 
                 {
                     RemovePlayer(playerData.ID);
                     RemoveClient(client.Value.GetIp());
+                    SceneManager.LoadScene(menuName);
                 }
             }
         }
+    }
+
+    public void ResetServerTimer() 
+    {
+        serverTimer = DateTime.UtcNow;
     }
 
     void AddClient(IPEndPoint ip, string name)
@@ -323,6 +316,21 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         return false;
     }
 
+    public bool CheckMaxPlayers(int currentPlayers) 
+    {
+        int maxPlayers = 1;
+
+        if(maxPlayers == currentPlayers) 
+        {
+            return true;
+        }
+
+        else 
+        {
+            return false;
+        }
+    }
+
     public MessageType OnRecieveMessage(byte[] data, IPEndPoint Ip)
     {
         MessageType typeMessage = (MessageType)BitConverter.ToInt32(data, 0);
@@ -335,11 +343,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if (CheckAlreadyUseName(info.Item2))
                 {
-                    List<byte> outData = new List<byte>();
+                    data = netSameName.Serialize();
 
-                    outData.AddRange(BitConverter.GetBytes((int)MessageType.SameName));
-
-                    SendToClient(outData.ToArray(), Ip);
+                    SendToClient(data, Ip);
                 }
 
                 else 
@@ -351,6 +357,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     data = netToClientHandShake.Serialize();
 
                     Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
+               
                 }
 
                 break;
@@ -359,12 +366,20 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 playerList = netToClientHandShake.Deserialize(data);
 
-                for (int i = 0; i < playerList.Count; i++)
+                if(CheckMaxPlayers(playerList.Count))
                 {
-                    if (playerList[i].tagName == playerData.tagName)
+                    data = netMaxPlayers.Serialize();
+                }
+
+                else 
+                {
+                    for (int i = 0; i < playerList.Count; i++)
                     {
-                        playerData.ID = playerList[i].ID;
-                        break;
+                        if (playerList[i].tagName == playerData.tagName)
+                        {
+                            playerData.ID = playerList[i].ID;
+                            break;
+                        }
                     }
                 }
 
@@ -374,19 +389,19 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if (netPingPong.IsChecksumOk(data))
                 {
-                    if (isServer)
+                    if (isServer) 
                     {
-                        clients[ipToId[Ip]].ResetTimer();
+                        clients[ipToId[Ip]].ResetClientTimer();
                         MessageManager.Instance.StartPong(Ip);
                     }
 
-                    else
+                    else 
                     {
                         ResetServerTimer();
                         MessageManager.Instance.StartPing();
                     }
 
-                    //Debug.Log(nameof(NetPingPong) + ": message is ok.");
+                    Debug.Log(nameof(NetPingPong) + ": message is ok.");
                 }
 
                 else 
@@ -442,6 +457,12 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 ErrorPopup.SetActive(true);
                 chatScreen.SetActive(false);
 
+                break;
+
+            case MessageType.MaxPlayers:
+                Debug.LogError("Max Players");
+
+                chatScreen.SetActive(false);
                 break;
 
             default:
