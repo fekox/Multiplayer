@@ -208,7 +208,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1598120747}
         m_TargetAssemblyTypeName: MenuButtons, Assembly-CSharp
-        m_MethodName: OnClickPlay
+        m_MethodName: OnPlayClick
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -647,7 +647,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1598120747}
         m_TargetAssemblyTypeName: MenuButtons, Assembly-CSharp
-        m_MethodName: OnClickQuit
+        m_MethodName: OnQuitClick
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

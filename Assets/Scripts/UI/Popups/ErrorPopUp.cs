@@ -11,4 +11,9 @@ public class ErrorPopUp : MonoBehaviour
     {
         SceneManager.LoadScene(menuName);
     }
+
+    public void OnQuitClick()
+    {
+        Application.Quit();
+    }
 }

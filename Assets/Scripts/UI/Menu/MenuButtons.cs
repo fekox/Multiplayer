@@ -7,12 +7,12 @@ using UnityEngine.SceneManagement;
 public class MenuButtons : MonoBehaviour
 {
     [SerializeField] private string gameName = "Game";
-    public void OnClickPlay() 
+    public void OnPlayClick() 
     {
         SceneManager.LoadScene(gameName);
     }
 
-    public void OnClickQuit()
+    public void OnQuitClick()
     {
         Debug.Log("QuitGame");
         Application.Quit();
