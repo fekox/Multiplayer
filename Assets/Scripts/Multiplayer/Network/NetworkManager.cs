@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 public class Client
@@ -14,6 +16,7 @@ public class Client
 
     public DateTime timer = DateTime.UtcNow;
     public bool startTimer;
+    public bool connected;
     public IPEndPoint ipEndPoint;
 
     public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
@@ -24,6 +27,7 @@ public class Client
         this.ipEndPoint = ipEndPoint;
 
         startTimer = true;
+        connected = true;
     }
 
     public int GetClientID()
@@ -118,6 +122,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private bool sameName = false;
     private bool maxPlayers = false;
 
+    public bool initialized;
+
     public IPAddress ipAddress
     {
         get; private set;
@@ -158,7 +164,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             StartClientTimer();
         }
 
-        else
+        if (!isServer && initialized)
         {
             StartServerTimer();
         }
@@ -184,11 +190,17 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             latencyText.text = "Latency: " + (DateTime.UtcNow - serverTimer).Seconds;
 
-            if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
+            for (int i = 0; i < clients.Count; i++) 
             {
-                Debug.Log("Close Server");
-                connection.DisposeAndClose();
-                SceneManager.LoadScene(menuName);
+                if (clients[i].connected == true)
+                {
+                    if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
+                    {
+                        Debug.Log("Close Server");
+                        Disconect();
+                        SceneManager.LoadScene(menuName);
+                    }
+                }
             }
         }
     }
@@ -223,7 +235,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if ((DateTime.UtcNow - client.Value.timer).Seconds > TimeOut) 
                 {
-                    RemovePlayer(playerData.ID);
                     RemoveClient(client.Value.GetIp());
                     SceneManager.LoadScene(menuName);
                 }
@@ -258,24 +269,26 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         playerList.Add(player);
     }
 
-    public void RemovePlayer(int playerID) 
-    {
-        for (int i = 0; i < playerList.Count; i++) 
-        {
-            if (playerID == playerList[i].ID)
-            {
-                playerList.Remove(playerList[i]);
-            }
-        }
-    }
-    void RemoveClient(IPEndPoint ip)
+    public void RemoveClient(IPEndPoint ip)
     {
         if (ipToId.ContainsKey(ip))
         {
-            Debug.Log("Removing client: " + ip.Address);
+            clients.ToArray()[ipToId[ip]].Value.connected = false;
 
-            clients.Remove(ipToId[ip]);
+            for (int i = 0; i < playerList.Count; i++)
+            {
+                if (playerList.ToArray()[i].ID == ipToId[ip])
+                {
+                    playerList.Remove(playerList.ToArray()[i]);
+                }
+            }
         }
+    }
+
+    public void Disconect() 
+    {
+        clients.Clear();
+        initialized = false;
     }
 
     public void OnReceiveData(byte[] data, IPEndPoint ipEndpoint)

@@ -45,6 +45,7 @@ public class MessageManager : MonoBehaviourSingleton<MessageManager>
 
     public void StartPing()
     {
+        NetworkManager.Instance.initialized = true;
         NetworkManager.Instance.SendToServer(netPingPong.Serialize());
     }
 
