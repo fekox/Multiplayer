@@ -107,6 +107,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private NetConsole netConsole = new NetConsole();
     private NetVector3 netVector3 = new NetVector3();
     private NetSameName netSameName = new NetSameName();
+    private NetMaxPlayers netMaxPlayers = new NetMaxPlayers();
 
     private UdpConnection connection;
 
@@ -115,6 +116,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private int clientID = 0;
 
     private bool sameName = false;
+    private bool maxPlayers = false;
 
     public IPAddress ipAddress
     {
@@ -352,6 +354,17 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     sameName = true;
                 }
 
+                netToClientHandShake.data = playerList;
+
+                if (CheckMaxPlayers(playerList.Count))
+                {
+                    data = netMaxPlayers.Serialize();
+
+                    SendToClient(data, Ip);
+
+                    maxPlayers = true;
+                }
+
                 else 
                 {
                     AddClient(Ip, info.Item2);
@@ -359,8 +372,10 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     netToClientHandShake.data = playerList;
 
                     data = netToClientHandShake.Serialize();
-
+    
                     Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
+                    
+                    maxPlayers = false;
                     sameName = false;
                 }
 
@@ -368,26 +383,18 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.ToClientHandShake:
 
-                playerList = netToClientHandShake.Deserialize(data);
+                playerList = netToClientHandShake.Deserialize(data);                
 
-                if(CheckMaxPlayers(playerList.Count))
+                for (int i = 0; i < playerList.Count; i++)
                 {
-                    MaxPlayerPopup.SetActive(true);
-                    chatScreen.SetActive(false);
-                }
-
-                else 
-                {
-                    for (int i = 0; i < playerList.Count; i++)
+                    if (playerList[i].tagName == playerData.tagName)
                     {
-                        if (playerList[i].tagName == playerData.tagName)
-                        {
-                            playerData.ID = playerList[i].ID;
-                            break;
-                        }
+                        playerData.ID = playerList[i].ID;
+                        break;
                     }
                 }
 
+                maxPlayers = false;
                 sameName = false;
                 break;
 
@@ -416,6 +423,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 }
 
                 sameName = false;
+                maxPlayers = false;
                 break;
 
             case MessageType.Console:
@@ -444,6 +452,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 }
 
                 sameName = false;
+                maxPlayers = false;
                 break;
 
             case MessageType.Position:
@@ -458,11 +467,20 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 
                 }
 
+                sameName = false;
+                maxPlayers = false;
                 break;
 
             case MessageType.SameName:
 
                 ErrorPopup.SetActive(true);
+                chatScreen.SetActive(false);
+
+                break;
+
+            case MessageType.MaxPlayers:
+
+                MaxPlayerPopup.SetActive(true);
                 chatScreen.SetActive(false);
 
                 break;
@@ -474,7 +492,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 break;
         }
 
-        if (isServer && !sameName)
+        if (isServer && !sameName && !maxPlayers)
         {
             Broadcast(data);
         }
