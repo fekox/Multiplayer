@@ -111,9 +111,10 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private UdpConnection connection;
 
     private DateTime serverTimer = DateTime.UtcNow;
-    private DateTime lastMessageSended = DateTime.UtcNow;
 
     private int clientID = 0;
+
+    private bool sameName = false;
 
     public IPAddress ipAddress
     {
@@ -347,6 +348,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     data = netSameName.Serialize();
 
                     SendToClient(data, Ip);
+
+                    sameName = true;
                 }
 
                 else 
@@ -358,7 +361,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     data = netToClientHandShake.Serialize();
 
                     Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
-               
+                    sameName = false;
                 }
 
                 break;
@@ -385,6 +388,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     }
                 }
 
+                sameName = false;
                 break;
 
             case MessageType.PingPong:
@@ -411,6 +415,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     Debug.Log(nameof(NetPingPong) + ": message is corrupt.");
                 }
 
+                sameName = false;
                 break;
 
             case MessageType.Console:
@@ -438,6 +443,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     Debug.Log(nameof(NetConsole) + ": message is corrupt.");
                 }
 
+                sameName = false;
                 break;
 
             case MessageType.Position:
@@ -468,7 +474,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 break;
         }
 
-        if (isServer)
+        if (isServer && !sameName)
         {
             Broadcast(data);
         }
