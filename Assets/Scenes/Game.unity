@@ -525,6 +525,8 @@ MonoBehaviour:
   MaxPlayerPopup: {fileID: 211287766}
   chatScreen: {fileID: 1130635388}
   menuName: Menu
+  timerText: {fileID: 1779833297}
+  initialized: 0
   TimeOut: 10
 --- !u!4 &180350410
 Transform:
@@ -1344,7 +1346,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26585a1b11a6bb749a3b1d70a2a6f30a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timerText: {fileID: 1779833297}
   spawns:
   - {fileID: 1639193860}
   - {fileID: 1330222746}
@@ -1353,7 +1354,6 @@ MonoBehaviour:
   playerPrefab: {fileID: 8582730382464736977, guid: e5e498c3f1f5bf547b492408d503f8cc,
     type: 3}
   networkManager: {fileID: 180350409}
-  startGame: 0
 --- !u!4 &506400412
 Transform:
   m_ObjectHideFlags: 0

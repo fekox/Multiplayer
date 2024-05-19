@@ -122,6 +122,16 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private bool sameName = false;
     private bool maxPlayers = false;
 
+
+    [Header("Game Timer")]
+
+    [SerializeField] private TextMeshProUGUI timerText;
+
+    private float timerSeg = 240;
+
+    private int seconds;
+    private int minutes;
+
     public bool initialized;
 
     public IPAddress ipAddress
@@ -169,9 +179,16 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             StartServerTimer();
         }
 
-        if(playerList.Count > 0)
+        if(playerList.Count > 1)
         {
-            gameManager.StartGame();
+            int oneMinute = 60;
+
+            timerSeg -= Time.deltaTime;
+
+            seconds = (int)timerSeg % oneMinute;
+            minutes = (int)timerSeg / oneMinute;
+
+            timerText.text = string.Format("{00:00}:{1:00}", minutes, seconds);
         }
     }
 
@@ -190,17 +207,11 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             latencyText.text = "Latency: " + (DateTime.UtcNow - serverTimer).Seconds;
 
-            for (int i = 0; i < clients.Count; i++) 
+            if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
             {
-                if (clients[i].connected == true)
-                {
-                    if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
-                    {
-                        Debug.Log("Close Server");
-                        Disconect();
-                        SceneManager.LoadScene(menuName);
-                    }
-                }
+                Debug.Log("Close Server");
+                Disconect();
+                SceneManager.LoadScene(menuName);
             }
         }
     }
