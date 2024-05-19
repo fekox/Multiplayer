@@ -1,94 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
-
-public class Client
-{
-    public string clientName;
-    public float timeStamp;
-    public int id;
-
-    public DateTime timer = DateTime.UtcNow;
-    public bool startTimer;
-    public bool connected;
-    public IPEndPoint ipEndPoint;
-
-    public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
-    {
-        clientName = "";
-        this.timeStamp = timeStamp;
-        this.id = id;
-        this.ipEndPoint = ipEndPoint;
-
-        startTimer = true;
-        connected = true;
-    }
-
-    public int GetClientID()
-    {
-        return id;
-    }
-
-    public void SetClientID(int newID)
-    {
-        this.id = newID;
-    }
-
-    public void PassClientData(Client newClient)
-    {
-        newClient.id = id;
-        newClient.timeStamp = timeStamp;
-        newClient.ipEndPoint = ipEndPoint;
-    }
-
-    public IPEndPoint GetIp()
-    {
-        return ipEndPoint;
-    }
-
-    public void SetStartTimer(bool newBool)
-    {
-        startTimer = newBool;
-    }
-
-    public string GetClientName() 
-    {
-        return clientName;
-    }
-
-    public void ResetClientTimer() 
-    {
-        this.timer = DateTime.UtcNow;
-    }
-}
-
-public struct Player
-{
-    public string tagName;
-    public int ID;
-
-    public Player(int id, string name)
-    {
-        this.ID = id;
-        this.tagName = name;
-    }
-
-    public string GetPlayerName()
-    {
-        return tagName;
-    }
-
-    public int GetPlayerID() 
-    {
-        return ID;
-    }
-}
 
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
 {
@@ -121,6 +37,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     private bool sameName = false;
     private bool maxPlayers = false;
+    private bool startGame = false;
 
 
     [Header("Game Timer")]
@@ -132,7 +49,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private int seconds;
     private int minutes;
 
-    public bool initialized;
+    public bool initialized = false;
 
     public IPAddress ipAddress
     {
@@ -151,18 +68,18 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public int TimeOut = 10;
 
+
+    [Header("Players List")]
+
+    private Player playerData;
+
+    public List<Player> playerList = new List<Player>();
+
+    [Header("Clients")]
+    public Dictionary<int, Client> clients = new Dictionary<int, Client>();
+    public Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
+
     public Action<byte[], IPEndPoint> OnReceiveEvent;
-
-    public readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
-    public readonly Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
-
-    public Player playerData;
-    public List<Player> playerList;
-
-    private void Start()
-    {
-        playerList = new List<Player>();
-    }
 
     private void Update()
     {
@@ -180,6 +97,11 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
 
         if(playerList.Count > 1)
+        {
+            startGame = true;
+        }
+
+        if (startGame)
         {
             int oneMinute = 60;
 
@@ -203,17 +125,18 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public void StartServerTimer()
     {
-        if (playerList.Count > 0)
-        {
-            latencyText.text = "Latency: " + (DateTime.UtcNow - serverTimer).Seconds;
+        latencyText.text = "Latency: " + (DateTime.UtcNow - serverTimer).Seconds;
 
-            if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
-            {
-                Debug.Log("Close Server");
-                Disconect();
-                SceneManager.LoadScene(menuName);
-            }
+        if ((DateTime.UtcNow - serverTimer).Seconds > TimeOut)
+        {
+            Disconect();
+            SceneManager.LoadScene(menuName);
         }
+    }
+
+    public void ResetServerTimer()
+    {
+        serverTimer = DateTime.UtcNow;
     }
 
     public void StartClient(string clientName, IPAddress ip, int port)
@@ -229,33 +152,37 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
         latencyGO.SetActive(true);
 
-        MessageManager.Instance.OnSendServerHandShake(playerData.ID, playerData.tagName);
+        OnSendServerHandShake(playerData.ID, playerData.tagName);
 
-        MessageManager.Instance.StartPing();
+        StartPing();
 
         gameManager.SpawnPlayer(clientName);
     }
 
     public void StartClientTimer() 
     {
-        if (playerList.Count > 0)
+        for (int i = 0; i < clients.Count; i++)
         {
-            foreach (var client in clients)
+            if (clients[i].connected == true)
             {
-                latencyText.text = "Latency: " + (DateTime.UtcNow - client.Value.timer).Seconds;
-
-                if ((DateTime.UtcNow - client.Value.timer).Seconds > TimeOut) 
+                if ((DateTime.UtcNow - clients[i].timer).Seconds > TimeOut)
                 {
-                    RemoveClient(client.Value.GetIp());
-                    SceneManager.LoadScene(menuName);
+                    RemoveClient(clients[i].ipEndPoint);
+                    //SceneManager.LoadScene(menuName);
                 }
             }
-        }
+        }            
     }
 
-    public void ResetServerTimer() 
+    public void ResetClientTimer(int PlayerId)
     {
-        serverTimer = DateTime.UtcNow;
+        for (int i = 0; i < clients.Count; i++)
+        {
+            if (clients[i].id == PlayerId)
+            {
+                clients[i].resetTimer();
+            }
+        }
     }
 
     void AddClient(IPEndPoint ip, string name)
@@ -293,12 +220,15 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     playerList.Remove(playerList.ToArray()[i]);
                 }
             }
+
+            SendNewListOfPlayers();
         }
     }
 
     public void Disconect() 
     {
         clients.Clear();
+        playerList.Clear();
         initialized = false;
     }
 
@@ -357,6 +287,65 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             return false;
         }
+    }
+
+    private void CheckMessage(byte[] message)
+    {
+        if (isServer)
+        {
+            Broadcast(message);
+        }
+
+        else
+        {
+            SendToServer(message);
+        }
+    }
+
+    public void OnSendConsoleMessage(string message)
+    {
+        netConsole.data.Item1 = playerData.ID;
+        netConsole.data.Item2 = message;
+
+        Debug.Log(netConsole.data.Item1);
+
+        if (isServer)
+        {
+            ChatScreen.Instance.OnReceiveDataEvent(message);
+        }
+
+        CheckMessage(netConsole.Serialize());
+    }
+
+    public void OnSendServerHandShake(int id, string name)
+    {
+        netToSeverHandShake.data.Item1 = id;
+        netToSeverHandShake.data.Item2 = name;
+        SendToServer(netToSeverHandShake.Serialize());
+    }
+
+    public void SendNewListOfPlayers()
+    {
+       netToClientHandShake.data = playerList;
+
+        byte[] data = netToClientHandShake.Serialize();
+
+        Broadcast(data);
+    }
+    public void StartPing()
+    {
+        initialized = true;
+        ResetServerTimer();
+
+        netPingPong.data = playerData.ID;
+
+        SendToServer(netPingPong.Serialize());
+    }
+
+    public void StartPong(byte[] data, IPEndPoint IP)
+    {
+        ResetClientTimer(netPingPong.Deserialize(data));
+        SendToClient(netPingPong.Serialize(), IP);
     }
 
     public MessageType OnRecieveMessage(byte[] data, IPEndPoint Ip)
@@ -428,14 +417,12 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 {
                     if (isServer) 
                     {
-                        clients[ipToId[Ip]].ResetClientTimer();
-                        MessageManager.Instance.StartPong(Ip);
+                        StartPong(data, Ip);
                     }
 
                     else 
                     {
-                        ResetServerTimer();
-                        MessageManager.Instance.StartPing();
+                        StartPing();
                     }
 
                     Debug.Log(nameof(NetPingPong) + ": message is ok.");

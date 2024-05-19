@@ -76,7 +76,6 @@ public abstract class BaseMessage<T>
         message.AddRange(BitConverter.GetBytes(checkSum));
         message.AddRange(BitConverter.GetBytes(checkSum2));
     }
-
     public virtual void ReciveChecksum(List<byte> message, out uint sum, out uint sum2) 
     {
         uint checkSum = 0;
@@ -123,7 +122,6 @@ public abstract class BaseMessage<T>
         sum = checkSum; 
         sum2 = checkSum2; 
     }
-
     public virtual bool IsChecksumOk(byte[] message) 
     {
         ReciveChecksum(message.ToList<byte>(), out uint sum, out uint sum2);
@@ -269,9 +267,7 @@ public class NetPingPong : OrderMessage<int>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
-        MessageType type = (MessageType)BitConverter.ToUInt32(message);
-
-        return type;
+        return (MessageType)BitConverter.ToUInt32(message);
     }
 
     public override MessageType GetMessageType()
@@ -282,7 +278,11 @@ public class NetPingPong : OrderMessage<int>
 
     public override int Deserialize(byte[] message)
     {
-        return 0;
+        int outData;
+
+        outData = BitConverter.ToInt32(message, 4);
+
+        return outData;
     }
 
     public override byte[] Serialize()
@@ -290,6 +290,7 @@ public class NetPingPong : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+        outData.AddRange(BitConverter.GetBytes(data));
 
         StartChecksum(outData);
 

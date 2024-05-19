@@ -32,7 +32,7 @@ public class ChatScreen : MonoBehaviourSingleton<ChatScreen>
             inputMessage.Select();
             inputMessage.text = "";
 
-            MessageManager.Instance.OnSendConsoleMessage(str);
+            NetworkManager.Instance.OnSendConsoleMessage(str);
         }
     }
 }
