@@ -525,6 +525,7 @@ MonoBehaviour:
   chatScreen: {fileID: 1130635388}
   menuName: Menu
   timerText: {fileID: 1779833297}
+  timerSeg: 180
   initialized: 0
   TimeOut: 5
   playerList: []

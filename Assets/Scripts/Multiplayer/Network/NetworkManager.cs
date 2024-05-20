@@ -25,7 +25,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
     private NetPingPong netPingPong = new NetPingPong();
     private NetConsole netConsole = new NetConsole();
-    private NetVector3 netVector3 = new NetVector3();
+    private NetVector2 netVector2 = new NetVector2();
     private NetSameName netSameName = new NetSameName();
     private NetMaxPlayers netMaxPlayers = new NetMaxPlayers();
 
@@ -44,7 +44,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     [SerializeField] private TextMeshProUGUI timerText;
 
-    private float timerSeg = 240;
+    public float timerSeg = 240;
 
     private int seconds;
     private int minutes;
@@ -468,7 +468,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.Position:
 
-                if(netVector3.IsChecksumOk(data)) 
+                if(netVector2.IsChecksumOk(data)) 
                 {
                 
                 }

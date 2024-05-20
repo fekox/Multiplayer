@@ -297,22 +297,19 @@ public class NetPingPong : OrderMessage<int>
         return outData.ToArray();
     }
 }
-public class NetVector3 : OrderMessage<UnityEngine.Vector3>
+public class NetVector2 : OrderMessage<UnityEngine.Vector2>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
-        MessageType type = (MessageType)BitConverter.ToUInt32(message);
-
-        return type;
+        return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override Vector3 Deserialize(byte[] message)
+    public override Vector2 Deserialize(byte[] message)
     {
-        Vector3 outData;
+        Vector2 outData;
 
-        outData.x = BitConverter.ToSingle(message, 8);
-        outData.y = BitConverter.ToSingle(message, 12);
-        outData.z = BitConverter.ToSingle(message, 16);
+        outData.x = BitConverter.ToSingle(message, 4);
+        outData.y = BitConverter.ToSingle(message, 8);
 
         return outData;
     }
@@ -327,10 +324,8 @@ public class NetVector3 : OrderMessage<UnityEngine.Vector3>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
-        outData.AddRange(BitConverter.GetBytes(lastSenMsgID++));
         outData.AddRange(BitConverter.GetBytes(data.x));
         outData.AddRange(BitConverter.GetBytes(data.y));
-        outData.AddRange(BitConverter.GetBytes(data.z));
 
         StartChecksum(outData);
 
