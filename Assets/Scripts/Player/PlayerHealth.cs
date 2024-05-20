@@ -11,7 +11,7 @@ public class PlayerHealth : MonoBehaviour
 
     [SerializeField] private GameObject shield;
 
-    [Header("SetUp")]
+    [Header("Setup")]
     [SerializeField] private int maxHealth;
 
     [SerializeField] private float inmortalTimer;

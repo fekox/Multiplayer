@@ -8,7 +8,6 @@ public class PlayerInputManager : MonoBehaviour
     [SerializeField] private PlayerMovement playerMovement;
 
     [SerializeField] private PlayerShoot playerShoot;
-
     public void OnMove(InputValue value)
     {
         playerMovement.Move(value);

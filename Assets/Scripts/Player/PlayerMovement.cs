@@ -5,12 +5,14 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] private GameObject playerSprite;
 
     private Rigidbody2D _rigidbody2D;
 
     private Vector2 movementInput;
 
+    [Header("Setup")]
     public float speed = 3.0f;
 
     private void Awake()

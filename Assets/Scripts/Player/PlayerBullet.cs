@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class PlayerBullet : MonoBehaviour
 {
-    [Header("SetUp")]
+    [Header("References")]
     [SerializeField] private Rigidbody2D _rigidbody2D;
 
+    [Header("Setup")]
     [SerializeField] private float bulletSpeed = 50f;
 
     [SerializeField] private float bulletLifeTime = 4f;

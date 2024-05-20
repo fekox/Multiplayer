@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayerShoot : MonoBehaviour
 {
-    [Header("SetUp")]
+    [Header("References")]
     [SerializeField] private Transform firePoint;
     [SerializeField] private GameObject bulletPrefab;
     public void ShootLogic()
