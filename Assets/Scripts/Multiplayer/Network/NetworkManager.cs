@@ -8,9 +8,9 @@ using UnityEngine.SceneManagement;
 
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
 {
+    [Header("References")]
     [SerializeField] private GameManager gameManager;
 
-    [SerializeField] private TextMeshProUGUI latencyText;
     [SerializeField] private GameObject latencyGO;
 
     [SerializeField] private GameObject ErrorPopup;
@@ -19,7 +19,14 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     [SerializeField] private GameObject chatScreen;
 
+    [SerializeField] private TextMeshProUGUI latencyText;
+
+    [SerializeField] private TextMeshProUGUI timerText;
+
+    [Header("Setup")]
     [SerializeField] private string menuName = "Menu";
+
+    [SerializeField] private int maxPlayersInGame = 4;
 
     private NetToClientHandShake netToClientHandShake = new NetToClientHandShake();
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
@@ -41,9 +48,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
 
     [Header("Game Timer")]
-
-    [SerializeField] private TextMeshProUGUI timerText;
-
     public float timerSeg = 240;
 
     private int seconds;
@@ -68,12 +72,10 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public int TimeOut = 10;
 
-
     [Header("Players List")]
+    public List<Player> playerList = new List<Player>();
 
     private Player playerData;
-
-    public List<Player> playerList = new List<Player>();
 
     [Header("Clients")]
     public Dictionary<int, Client> clients = new Dictionary<int, Client>();
@@ -168,7 +170,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                 if ((DateTime.UtcNow - clients[i].timer).Seconds > TimeOut)
                 {
                     RemoveClient(clients[i].ipEndPoint);
-                    //SceneManager.LoadScene(menuName);
                 }
             }
         }            
@@ -276,9 +277,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public bool CheckMaxPlayers(int currentPlayers) 
     {
-        int maxPlayers = 4;
-
-        if(maxPlayers == currentPlayers) 
+        if(maxPlayersInGame == currentPlayers) 
         {
             return true;
         }
