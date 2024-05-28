@@ -10,6 +10,8 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private List<GameObject> spawns;
 
+    [SerializeField] private List<GameObject> playersGO;
+
     [SerializeField] private GameObject playerPrefab;
 
     [SerializeField] private NetworkManager networkManager;
@@ -18,11 +20,15 @@ public class GameManager : MonoBehaviour
 
     private PlayerHud playerHud;
 
+    private int spawn;
+
     public void SpawnPlayer(string playerName) 
     {
-        int spawn = UnityEngine.Random.Range(0, 4);
-
         playerNameInstance = Instantiate(playerPrefab, spawns[spawn].transform.position, spawns[spawn].transform.rotation);
+
+        spawn++;
+
+        playersGO.Add(playerPrefab);
 
         playerHud = playerNameInstance.GetComponent<PlayerHud>();
 

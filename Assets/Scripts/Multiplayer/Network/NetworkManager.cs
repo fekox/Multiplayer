@@ -157,8 +157,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         OnSendServerHandShake(playerData.ID, playerData.tagName);
 
         StartPing();
-
-        gameManager.SpawnPlayer(clientName);
     }
 
     public void StartClientTimer() 
@@ -384,7 +382,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     netToClientHandShake.data = playerList;
 
                     data = netToClientHandShake.Serialize();
-    
+
+                    gameManager.SpawnPlayer(info.Item2);
+
                     Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
                     
                     maxPlayers = false;
@@ -469,7 +469,17 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if(netVector2.IsChecksumOk(data)) 
                 {
-                
+                    (int, Vector2) infoPos = netVector2.Deserialize(data);
+
+                    for (int i = 0; i < playerList.Count; i++)
+                    {
+                        if (playerList[i].ID == infoPos.Item1)
+                        {
+                            playerList[i].position = infoPos.Item2;
+
+
+                        }
+                    }
                 }
 
                 else 

@@ -518,17 +518,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameManager: {fileID: 506400411}
-  latencyText: {fileID: 1477316167}
   latencyGO: {fileID: 1477316165}
   ErrorPopup: {fileID: 289367045}
   MaxPlayerPopup: {fileID: 211287766}
   chatScreen: {fileID: 1130635388}
-  menuName: Menu
+  latencyText: {fileID: 1477316167}
   timerText: {fileID: 1779833297}
+  menuName: Menu
+  maxPlayersInGame: 4
   timerSeg: 180
   initialized: 0
   TimeOut: 5
   playerList: []
+  playerGO: []
 --- !u!4 &180350410
 Transform:
   m_ObjectHideFlags: 0

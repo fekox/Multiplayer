@@ -12,6 +12,8 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector2 movementInput;
 
+    private NetVector2 netVector2 = new NetVector2();
+
     [Header("Setup")]
     public float speed = 3.0f;
 
@@ -20,19 +22,23 @@ public class PlayerMovement : MonoBehaviour
         _rigidbody2D = GetComponent<Rigidbody2D>();
     }
 
-    private void FixedUpdate()
-    {
-        MoveLogic();
-    }
-
     public void Move(InputValue value)
     {
         movementInput = value.Get<Vector2>();
+
+        netVector2.data.Item2 = movementInput;
+
+        NetworkManager.Instance.SendToServer(netVector2.Serialize());
+    }
+    
+    public Vector2 GetPlayerPosition() 
+    {
+        return movementInput;
     }
 
-    public void MoveLogic()
+    public void MoveLogic(Vector2 playerPos)
     {
-        _rigidbody2D.velocity = (movementInput * speed) * Time.deltaTime;
+        _rigidbody2D.velocity = (playerPos * speed) * Time.deltaTime;
 
         PlayerFlipX();
         PlayerFlipY();
