@@ -478,7 +478,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7737067160918312161}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -674,7 +674,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7593145957343089251}
-  - component: {fileID: 3732788426255331893}
+  - component: {fileID: 2328488776552396461}
   - component: {fileID: 223026328506867849}
   - component: {fileID: 4692218492179446551}
   - component: {fileID: 8344183084640447190}
@@ -699,7 +699,7 @@ Transform:
   m_GameObject: {fileID: 8582730382464736977}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -30, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -707,7 +707,7 @@ Transform:
   - {fileID: 6146558982356860978}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!50 &3732788426255331893
+--- !u!50 &2328488776552396461
 Rigidbody2D:
   serializedVersion: 4
   m_ObjectHideFlags: 0
@@ -827,7 +827,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerSprite: {fileID: 7737067160918312161}
-  speed: 200
+  gameManager: {fileID: 9189100953559437972, guid: fb799f155c7275e4db7fee2dc6645bbe,
+    type: 3}
+  _rigidbody2D: {fileID: 2328488776552396461}
+  speed: 10
 --- !u!114 &3514039065292199101
 MonoBehaviour:
   m_ObjectHideFlags: 0

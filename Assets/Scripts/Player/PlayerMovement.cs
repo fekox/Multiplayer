@@ -8,7 +8,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("References")]
     [SerializeField] private GameObject playerSprite;
 
-    private Rigidbody2D _rigidbody2D;
+    [SerializeField] private GameManager gameManager;
+
+    [SerializeField] private Rigidbody2D _rigidbody2D;
 
     private Vector2 movementInput;
 
@@ -17,18 +19,16 @@ public class PlayerMovement : MonoBehaviour
     [Header("Setup")]
     public float speed = 3.0f;
 
-    private void Awake()
-    {
-        _rigidbody2D = GetComponent<Rigidbody2D>();
-    }
-
     public void Move(InputValue value)
     {
         movementInput = value.Get<Vector2>();
 
         netVector2.data.Item2 = movementInput;
 
-        NetworkManager.Instance.SendToServer(netVector2.Serialize());
+        if (!NetworkManager.Instance.isServer) 
+        {
+            NetworkManager.Instance.SendToServer(netVector2.Serialize());
+        }
     }
     
     public Vector2 GetPlayerPosition() 
@@ -36,35 +36,39 @@ public class PlayerMovement : MonoBehaviour
         return movementInput;
     }
 
-    public void MoveLogic(Vector2 playerPos)
+    public void UpdatePlayerMovement(int id, Vector2 playerPos)
     {
-        _rigidbody2D.velocity = (playerPos * speed) * Time.deltaTime;
+        _rigidbody2D = GetComponent<Rigidbody2D>();
 
-        PlayerFlipX();
-        PlayerFlipY();
+        _rigidbody2D.velocity = (playerPos * speed);
+
+        PlayerFlipX(playerPos);
+        PlayerFlipY(playerPos);
+
+        NetworkManager.Instance.playerList[id].position = playerPos;
     }
 
-    public void PlayerFlipX() 
+    public void PlayerFlipX(Vector2 playerPos) 
     {
-        if (movementInput.x > 0)
+        if (playerPos.x > 0)
         {
             playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, -90f);
         }
 
-        if (movementInput.x < 0)
+        if (playerPos.x < 0)
         {
             playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 90f);
         }
     }
 
-    public void PlayerFlipY() 
+    public void PlayerFlipY(Vector2 playerPos) 
     {
-        if (movementInput.y > 0)
+        if (playerPos.y > 0)
         {
             playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 0f);
         }
 
-        if (movementInput.y < 0)
+        if (playerPos.y < 0)
         {
             playerSprite.transform.rotation = Quaternion.Euler(playerSprite.transform.rotation.x, playerSprite.transform.rotation.y, 180f);       
         }

@@ -14,6 +14,11 @@ public class PlayerHud : MonoBehaviour
         playerNameText = playerName;
     }
 
+    public string GetPlayerName() 
+    {
+        return playerNameText;
+    }
+
     private void Update()
     {
         playerName.text = playerNameText;

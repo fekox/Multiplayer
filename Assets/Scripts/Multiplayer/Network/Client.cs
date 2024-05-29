@@ -2,7 +2,7 @@ using System;
 using System.Net;
 using UnityEngine;
 
-public class Client : MonoBehaviour
+public class Client
 {
     public string clientName;
     public float timeStamp;

@@ -23,6 +23,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     [SerializeField] private TextMeshProUGUI timerText;
 
+    private PlayerMovement playerMovement;
+
     [Header("Setup")]
     [SerializeField] private string menuName = "Menu";
 
@@ -75,7 +77,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     [Header("Players List")]
     public List<Player> playerList = new List<Player>();
 
-    private Player playerData;
+    public Player playerData;
 
     [Header("Clients")]
     public Dictionary<int, Client> clients = new Dictionary<int, Client>();
@@ -198,6 +200,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             AddPlayer(new Player(clientID, name));
 
             clientID++;
+
+            gameManager.SpawnPlayer(name);
         }
     }
 
@@ -383,8 +387,6 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                     data = netToClientHandShake.Serialize();
 
-                    gameManager.SpawnPlayer(info.Item2);
-
                     Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
                     
                     maxPlayers = false;
@@ -399,6 +401,8 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 for (int i = 0; i < playerList.Count; i++)
                 {
+                    gameManager.SpawnPlayerFromClient(playerList[i].tagName);
+
                     if (playerList[i].tagName == playerData.tagName)
                     {
                         playerData.ID = playerList[i].ID;
@@ -469,22 +473,44 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if(netVector2.IsChecksumOk(data)) 
                 {
-                    (int, Vector2) infoPos = netVector2.Deserialize(data);
-
-                    for (int i = 0; i < playerList.Count; i++)
+                    if (isServer) 
                     {
-                        if (playerList[i].ID == infoPos.Item1)
+                        (int, Vector2) infoPos = netVector2.Deserialize(data);
+
+                        for (int i = 0; i < playerList.Count; i++)
                         {
-                            playerList[i].position = infoPos.Item2;
+                            if (playerList[i].ID == infoPos.Item1)
+                            {
+                                playerList[i].position = infoPos.Item2;
 
+                                var playerMove = gameManager.playersGO[i];
 
+                                playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
+                            }
+                        }
+                    }
+
+                    else 
+                    {
+                        (int, Vector2) infoPos = netVector2.Deserialize(data);
+
+                        for (int i = 0; i < playerList.Count; i++)
+                        {
+                            if (playerList[i].ID == infoPos.Item1)
+                            {
+                                playerList[i].position = infoPos.Item2;
+
+                                var playerMove = gameManager.playersGO[i];
+
+                                playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
+                            }
                         }
                     }
                 }
 
                 else 
                 {
-                
+                    Debug.Log(nameof(NetVector2) + ": message is corrupt.");
                 }
 
                 sameName = false;
