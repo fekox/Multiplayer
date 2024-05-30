@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using TMPro;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 using UnityEngine.SceneManagement;
 
 public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
@@ -37,6 +38,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private NetVector2 netVector2 = new NetVector2();
     private NetSameName netSameName = new NetSameName();
     private NetMaxPlayers netMaxPlayers = new NetMaxPlayers();
+    private NetTimer netTimer = new NetTimer();
 
     private UdpConnection connection;
 
@@ -50,10 +52,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
 
     [Header("Game Timer")]
-    public float timerSeg = 240;
-
-    private int seconds;
-    private int minutes;
+    public float timerSec;
 
     public bool initialized = false;
 
@@ -100,21 +99,14 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
             StartServerTimer();
         }
 
-        if(playerList.Count > 1)
+        if (playerList.Count > 0)
         {
             startGame = true;
         }
 
         if (startGame)
         {
-            int oneMinute = 60;
-
-            timerSeg -= Time.deltaTime;
-
-            seconds = (int)timerSeg % oneMinute;
-            minutes = (int)timerSeg / oneMinute;
-
-            timerText.text = string.Format("{00:00}:{1:00}", minutes, seconds);
+            UpdateGameTimer();
         }
     }
 
@@ -161,7 +153,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         StartPing();
     }
 
-    public void StartClientTimer() 
+    public void StartClientTimer()
     {
         for (int i = 0; i < clients.Count; i++)
         {
@@ -172,7 +164,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     RemoveClient(clients[i].ipEndPoint);
                 }
             }
-        }            
+        }
     }
 
     public void ResetClientTimer(int PlayerId)
@@ -228,11 +220,38 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
     }
 
-    public void Disconect() 
+    public void Disconect()
     {
         clients.Clear();
         playerList.Clear();
         initialized = false;
+        gameManager.playersGO.Clear();
+
+        SceneManager.LoadScene(menuName);
+    }
+
+    public void UpdateGameTimer()
+    {
+        if (isServer)
+        {
+            timerSec -= Time.deltaTime;
+
+            if (timerSec <= 0)
+            {
+                Disconect();
+            }
+
+            timerText.text = ((int)timerSec).ToString();
+
+            netTimer.data = timerSec;
+
+            Broadcast(netTimer.Serialize());
+        }
+    }
+
+    public void UpdateGameTimerForPlayer(float timer)
+    {
+        timerText.text = ((int)timer).ToString();
     }
 
     public void OnReceiveData(byte[] data, IPEndPoint ipEndpoint)
@@ -277,14 +296,14 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         return false;
     }
 
-    public bool CheckMaxPlayers(int currentPlayers) 
+    public bool CheckMaxPlayers(int currentPlayers)
     {
-        if(maxPlayersInGame == currentPlayers) 
+        if (maxPlayersInGame == currentPlayers)
         {
             return true;
         }
 
-        else 
+        else
         {
             return false;
         }
@@ -327,7 +346,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public void SendNewListOfPlayers()
     {
-       netToClientHandShake.data = playerList;
+        netToClientHandShake.data = playerList;
 
         byte[] data = netToClientHandShake.Serialize();
 
@@ -379,7 +398,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     maxPlayers = true;
                 }
 
-                else 
+                else
                 {
                     AddClient(Ip, info.Item2);
 
@@ -388,7 +407,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     data = netToClientHandShake.Serialize();
 
                     Debug.Log("add new client = Client Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].tagName + " - Id: " + netToClientHandShake.data[netToClientHandShake.data.Count - 1].ID);
-                    
+
                     maxPlayers = false;
                     sameName = false;
                 }
@@ -397,7 +416,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.ToClientHandShake:
 
-                playerList = netToClientHandShake.Deserialize(data);                
+                playerList = netToClientHandShake.Deserialize(data);
 
                 for (int i = 0; i < playerList.Count; i++)
                 {
@@ -418,12 +437,12 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if (netPingPong.IsChecksumOk(data))
                 {
-                    if (isServer) 
+                    if (isServer)
                     {
                         StartPong(data, Ip);
                     }
 
-                    else 
+                    else
                     {
                         StartPing();
                     }
@@ -431,7 +450,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     Debug.Log(nameof(NetPingPong) + ": message is ok.");
                 }
 
-                else 
+                else
                 {
                     Debug.Log(nameof(NetPingPong) + ": message is corrupt.");
                 }
@@ -471,44 +490,24 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.Position:
 
-                if(netVector2.IsChecksumOk(data)) 
+                if (netVector2.IsChecksumOk(data))
                 {
-                    if (isServer) 
+                    (int, Vector2) infoPos = netVector2.Deserialize(data);
+
+                    for (int i = 0; i < playerList.Count; i++)
                     {
-                        (int, Vector2) infoPos = netVector2.Deserialize(data);
-
-                        for (int i = 0; i < playerList.Count; i++)
+                        if (playerList[i].ID == infoPos.Item1)
                         {
-                            if (playerList[i].ID == infoPos.Item1)
-                            {
-                                playerList[i].position = infoPos.Item2;
+                            playerList[i].position = infoPos.Item2;
 
-                                var playerMove = gameManager.playersGO[i];
+                            var playerMove = gameManager.playersGO[i];
 
-                                playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
-                            }
-                        }
-                    }
-
-                    else 
-                    {
-                        (int, Vector2) infoPos = netVector2.Deserialize(data);
-
-                        for (int i = 0; i < playerList.Count; i++)
-                        {
-                            if (playerList[i].ID == infoPos.Item1)
-                            {
-                                playerList[i].position = infoPos.Item2;
-
-                                var playerMove = gameManager.playersGO[i];
-
-                                playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
-                            }
+                            playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
                         }
                     }
                 }
 
-                else 
+                else
                 {
                     Debug.Log(nameof(NetVector2) + ": message is corrupt.");
                 }
@@ -528,6 +527,24 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 MaxPlayerPopup.SetActive(true);
                 chatScreen.SetActive(false);
+
+                break;
+
+            case MessageType.Timer:
+
+                if (netTimer.IsChecksumOk(data))
+                {
+                    float infoTimer = netTimer.Deserialize(data);
+
+                    UpdateGameTimerForPlayer(infoTimer);
+
+                    Debug.Log(nameof(NetTimer) + ": message is ok.");
+                }
+
+                else
+                {
+                    Debug.Log(nameof(NetTimer) + ": message is corrupt.");
+                }
 
                 break;
 

@@ -525,11 +525,15 @@ MonoBehaviour:
   latencyText: {fileID: 1477316167}
   timerText: {fileID: 1779833297}
   menuName: Menu
-  maxPlayersInGame: 4
-  timerSeg: 180
+  maxPlayersInGame: 180
+  timerSec: 10
   initialized: 0
   TimeOut: 5
   playerList: []
+  playerData:
+    tagName: 
+    ID: 0
+    position: {x: 0, y: 0}
 --- !u!4 &180350410
 Transform:
   m_ObjectHideFlags: 0

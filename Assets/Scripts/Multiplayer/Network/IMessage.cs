@@ -12,10 +12,11 @@ public enum MessageType
     Console = 3,
     Position = 4,
     SameName = 5,
-    MaxPlayers = 6
+    MaxPlayers = 6,
+    Timer = 7
 }
 
-public enum Operations 
+public enum Operations
 {
     Add = 0,
     Substract = 1,
@@ -37,7 +38,7 @@ public abstract class BaseMessage<T>
 
         int messageLenght = message.Count;
 
-        for (int i = 0; i < messageLenght; i++) 
+        for (int i = 0; i < messageLenght; i++)
         {
             int temp = message[i] % 4;
 
@@ -48,35 +49,35 @@ public abstract class BaseMessage<T>
                     checkSum += message[i];
                     checkSum2 += message[i];
 
-                break;
+                    break;
 
                 case (int)Operations.Substract:
 
                     checkSum -= message[i];
                     checkSum2 -= message[i];
 
-                break;
+                    break;
 
                 case (int)Operations.ShiftRight:
 
                     checkSum >>= message[i];
                     checkSum2 >>= message[i];
 
-                break;
+                    break;
 
                 case (int)Operations.ShiftLeft:
 
                     checkSum <<= message[i];
                     checkSum2 <<= message[i];
 
-                break;
+                    break;
             }
         }
 
         message.AddRange(BitConverter.GetBytes(checkSum));
         message.AddRange(BitConverter.GetBytes(checkSum2));
     }
-    public virtual void ReciveChecksum(List<byte> message, out uint sum, out uint sum2) 
+    public virtual void ReciveChecksum(List<byte> message, out uint sum, out uint sum2)
     {
         uint checkSum = 0;
         uint checkSum2 = 0;
@@ -94,38 +95,38 @@ public abstract class BaseMessage<T>
                     checkSum += message[i];
                     checkSum2 += message[i];
 
-                break;
+                    break;
 
                 case (int)Operations.Substract:
 
                     checkSum -= message[i];
                     checkSum2 -= message[i];
 
-                break;
+                    break;
 
                 case (int)Operations.ShiftRight:
 
                     checkSum >>= message[i];
                     checkSum2 >>= message[i];
 
-                break;
+                    break;
 
                 case (int)Operations.ShiftLeft:
 
                     checkSum <<= message[i];
                     checkSum2 <<= message[i];
 
-                break;
+                    break;
             }
         }
 
-        sum = checkSum; 
-        sum2 = checkSum2; 
+        sum = checkSum;
+        sum2 = checkSum2;
     }
-    public virtual bool IsChecksumOk(byte[] message) 
+    public virtual bool IsChecksumOk(byte[] message)
     {
         ReciveChecksum(message.ToList<byte>(), out uint sum, out uint sum2);
-        
+
         if (sum == BitConverter.ToUInt32(message, message.Length - sizeof(uint) * 2) &&
             sum2 == BitConverter.ToUInt32(message, message.Length - sizeof(uint)))
         {
@@ -440,6 +441,39 @@ public class NetMaxPlayers : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        return outData.ToArray();
+    }
+}
+public class NetTimer : OrderMessage<float>
+{
+    public override MessageType ReadMsgID(byte[] message)
+    {
+        return (MessageType)BitConverter.ToUInt32(message);
+    }
+
+    public override float Deserialize(byte[] message)
+    {
+        float outData;
+
+        outData = BitConverter.ToSingle(message, 4);
+
+        return outData;
+    }
+
+    public override MessageType GetMessageType()
+    {
+        return MessageType.Timer;
+    }
+
+    public override byte[] Serialize()
+    {
+        List<byte> outData = new List<byte>();
+
+        outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+        outData.AddRange(BitConverter.GetBytes(data));
+
+        StartChecksum(outData);
 
         return outData.ToArray();
     }
