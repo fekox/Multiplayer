@@ -141,11 +141,7 @@ public abstract class BaseMessage<T>
 }
 public abstract class OrderMessage<T> : BaseMessage<T>
 {
-    protected static ulong lastSenMsgID = 0;
-
-    protected ulong msjID = 0;
-
-    protected static Dictionary<MessageType, ulong> lastExecutedMsgID = new Dictionary<MessageType, ulong>();
+    protected static ulong messageID = 0;
     public abstract MessageType ReadMsgID(byte[] message);
 }
 public class NetToServerHandShake : OrderMessage<(int, string)>
@@ -298,20 +294,21 @@ public class NetPingPong : OrderMessage<int>
         return outData.ToArray();
     }
 }
-public class NetVector2 : OrderMessage<(int id, UnityEngine.Vector2)>
+public class NetVector3 : OrderMessage<(int id, UnityEngine.Vector3)>
 {
     public override MessageType ReadMsgID(byte[] message)
     {
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override (int id, UnityEngine.Vector2) Deserialize(byte[] message)
+    public override (int id, UnityEngine.Vector3) Deserialize(byte[] message)
     {
-        (int id, UnityEngine.Vector2) outData;
+        (int id, UnityEngine.Vector3) outData;
 
         outData.Item1 = BitConverter.ToInt32(message, 4);
         outData.Item2.x = BitConverter.ToSingle(message, 8);
         outData.Item2.y = BitConverter.ToSingle(message, 12);
+        outData.Item2.z = BitConverter.ToSingle(message, 16);
 
         return outData;
     }

@@ -732,7 +732,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 4
 --- !u!61 &223026328506867849
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -829,6 +829,7 @@ MonoBehaviour:
   gameManager: {fileID: 9189100953559437972, guid: fb799f155c7275e4db7fee2dc6645bbe,
     type: 3}
   _rigidbody2D: {fileID: 2328488776552396461}
+  ID: 0
   speed: 10
 --- !u!114 &3514039065292199101
 MonoBehaviour:

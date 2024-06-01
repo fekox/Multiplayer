@@ -27,9 +27,11 @@ public class GameManager : MonoBehaviour
         playersGO.Clear();
     }
 
-    public void SpawnPlayer(string playerName) 
+    public void SpawnPlayer(string playerName, int id) 
     {
         playerNameInstance = Instantiate(playerPrefab, spawns[spawn].transform.position, spawns[spawn].transform.rotation);
+
+        playerNameInstance.GetComponent<PlayerMovement>().ID = id;
 
         spawn++;
 
@@ -40,7 +42,7 @@ public class GameManager : MonoBehaviour
         playerHud.SetPlayerName(playerName);
     }
 
-    public void SpawnPlayerFromClient(string playerName)
+    public void SpawnPlayerFromClient(string playerName, int id)
     {
         for (int i = 0; i < playersGO.Count; i++) 
         {
@@ -51,6 +53,8 @@ public class GameManager : MonoBehaviour
         }
 
         playerNameInstance = Instantiate(playerPrefab, spawns[spawn].transform.position, spawns[spawn].transform.rotation);
+
+        playerNameInstance.GetComponent<PlayerMovement>().ID = id;
 
         spawn++;
 

@@ -35,7 +35,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     private NetToServerHandShake netToSeverHandShake = new NetToServerHandShake();
     private NetPingPong netPingPong = new NetPingPong();
     private NetConsole netConsole = new NetConsole();
-    private NetVector2 netVector2 = new NetVector2();
+    private NetVector3 netVector3 = new NetVector3();
     private NetSameName netSameName = new NetSameName();
     private NetMaxPlayers netMaxPlayers = new NetMaxPlayers();
     private NetTimer netTimer = new NetTimer();
@@ -193,7 +193,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             clientID++;
 
-            gameManager.SpawnPlayer(name);
+            gameManager.SpawnPlayer(name, id);
         }
     }
 
@@ -420,13 +420,12 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 for (int i = 0; i < playerList.Count; i++)
                 {
-                    gameManager.SpawnPlayerFromClient(playerList[i].tagName);
-
                     if (playerList[i].tagName == playerData.tagName)
                     {
                         playerData.ID = playerList[i].ID;
-                        break;
                     }
+
+                    gameManager.SpawnPlayerFromClient(playerList[i].tagName, playerList[i].ID);
                 }
 
                 maxPlayers = false;
@@ -490,9 +489,9 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             case MessageType.Position:
 
-                if (netVector2.IsChecksumOk(data))
+                if (netVector3.IsChecksumOk(data))
                 {
-                    (int, Vector2) infoPos = netVector2.Deserialize(data);
+                    (int, Vector2) infoPos = netVector3.Deserialize(data);
 
                     for (int i = 0; i < playerList.Count; i++)
                     {
@@ -509,7 +508,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 else
                 {
-                    Debug.Log(nameof(NetVector2) + ": message is corrupt.");
+                    Debug.Log(nameof(NetVector3) + ": message is corrupt.");
                 }
 
                 sameName = false;

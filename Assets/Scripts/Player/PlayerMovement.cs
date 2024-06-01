@@ -10,24 +10,35 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private GameManager gameManager;
 
-    [SerializeField] private Rigidbody2D _rigidbody2D;
+    private Vector3 movementInput;
 
-    private Vector2 movementInput;
+    private NetVector3 netVector3 = new NetVector3();
 
-    private NetVector2 netVector2 = new NetVector2();
+    public int ID;
 
     [Header("Setup")]
     public float speed = 3.0f;
 
+    private void Update()
+    {
+        if (movementInput != Vector3.zero) 
+        {
+            netVector3.data.Item1 = ID;
+
+            netVector3.data.Item2 = movementInput;
+
+            if (!NetworkManager.Instance.isServer)
+            {
+                NetworkManager.Instance.SendToServer(netVector3.Serialize());
+            }
+        }
+    }
+
     public void Move(InputValue value)
     {
-        movementInput = value.Get<Vector2>();
-
-        netVector2.data.Item2 = movementInput;
-
-        if (!NetworkManager.Instance.isServer) 
+        if (ID == NetworkManager.Instance.playerData.ID)
         {
-            NetworkManager.Instance.SendToServer(netVector2.Serialize());
+            movementInput = value.Get<Vector2>();
         }
     }
     
@@ -36,11 +47,9 @@ public class PlayerMovement : MonoBehaviour
         return movementInput;
     }
 
-    public void UpdatePlayerMovement(int id, Vector2 playerPos)
+    public void UpdatePlayerMovement(int id, Vector3 playerPos)
     {
-        _rigidbody2D = GetComponent<Rigidbody2D>();
-
-        _rigidbody2D.velocity = (playerPos * speed);
+        transform.position += playerPos * speed * Time.deltaTime;
 
         PlayerFlipX(playerPos);
         PlayerFlipY(playerPos);
