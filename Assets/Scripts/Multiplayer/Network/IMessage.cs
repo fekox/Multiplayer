@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Rendering.VirtualTexturing;
 
 public enum MessageType
 {
@@ -25,7 +24,7 @@ public enum Operations
     ShiftLeft = 3
 }
 
-public enum Flags 
+public enum FlagsType 
 {
     Ordenable = 0,
     Important = 1,
@@ -34,9 +33,8 @@ public enum Flags
 public abstract class BaseMessage<T>
 {
     public T data;
-    public int messageID = 0;
-
-    public abstract byte[] Serialize();
+    public static int playerID;
+    public abstract byte[] Serialize(int newPlayer);
     public abstract T Deserialize(byte[] message);
     public abstract MessageType GetMessageType();
     public virtual void StartChecksum(List<byte> message)
@@ -57,28 +55,28 @@ public abstract class BaseMessage<T>
                     checkSum += message[i];
                     checkSum2 += message[i];
 
-                    break;
+                break;
 
                 case (int)Operations.Substract:
 
                     checkSum -= message[i];
                     checkSum2 -= message[i];
 
-                    break;
+                break;
 
                 case (int)Operations.ShiftRight:
 
                     checkSum >>= message[i];
                     checkSum2 >>= message[i];
 
-                    break;
+                break;
 
                 case (int)Operations.ShiftLeft:
 
                     checkSum <<= message[i];
                     checkSum2 <<= message[i];
 
-                    break;
+                break;
             }
         }
 
@@ -146,18 +144,26 @@ public abstract class BaseMessage<T>
             return false;
         }
     }
+
+    public virtual byte[] Serialize()
+    {
+        return Serialize(playerID);
+    }
 }
 public abstract class OrderMessage<T> : BaseMessage<T>
 {
-    protected virtual void OrderMsg(List<byte> outData, MessageType type, int newPlayerID, Flags flagType)
+    public int messageID = 0;
+    public int offsetSize = 0;
+
+    protected virtual void OrderMsg(List<byte> outData, int newPlayerID)
     {
-        outData.AddRange(BitConverter.GetBytes((int)type));
         outData.AddRange(BitConverter.GetBytes(newPlayerID));
-        outData.AddRange(BitConverter.GetBytes((int)flagType));
+        outData.AddRange(BitConverter.GetBytes(messageID++));
     }
+
     public abstract MessageType ReadMsgID(byte[] message);
 
-    public abstract Flags GetFlagType();
+    public abstract FlagsType GetFlagType();
 }
 public class NetToServerHandShake : OrderMessage<(int, string)>
 {
@@ -168,23 +174,28 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         return type;
     }
 
-    public override Flags GetFlagType() 
+    public override FlagsType GetFlagType() 
     {
-        return Flags.Important;
+        return FlagsType.Important;
     }
 
     public override (int, string) Deserialize(byte[] message)
     {
         (int, string) outData;
 
-        outData.Item1 = BitConverter.ToInt32(message, 4);
+        offsetSize = 12;
 
+        outData.Item1 = BitConverter.ToInt32(message, offsetSize);
+        
+        offsetSize += 4;
         outData.Item2 = " ";
-        int messageLenght = BitConverter.ToInt32(message, 8);
+        int messageLenght = BitConverter.ToInt32(message, offsetSize);
+
+        offsetSize += 4;
 
         for (int i = 0; i < messageLenght; i++)
         {
-            outData.Item2 += (char)message[12 + i];
+            outData.Item2 += (char)message[offsetSize + i];
         }
 
         return outData;
@@ -195,11 +206,14 @@ public class NetToServerHandShake : OrderMessage<(int, string)>
         return MessageType.ToServerHandShake;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, data.Item1);
+
         outData.AddRange(BitConverter.GetBytes(data.Item1));
         outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
@@ -220,9 +234,9 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         return type;
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Important;
+        return FlagsType.Important;
     }
 
     public override List<Player> Deserialize(byte[] message)
@@ -263,11 +277,12 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         return MessageType.ToClientHandShake;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
         outData.AddRange(BitConverter.GetBytes(data.Count));
 
         for (int i = 0; i < data.Count; i++)
@@ -296,9 +311,9 @@ public class NetPingPong : OrderMessage<int>
         return MessageType.PingPong;
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Important;
+        return FlagsType.Important;
     }
 
 
@@ -311,7 +326,7 @@ public class NetPingPong : OrderMessage<int>
         return outData;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
@@ -330,9 +345,9 @@ public class NetVector3 : OrderMessage<(int id, UnityEngine.Vector3)>
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Ordenable;
+        return FlagsType.Ordenable;
     }
 
     public override (int id, UnityEngine.Vector3) Deserialize(byte[] message)
@@ -352,11 +367,10 @@ public class NetVector3 : OrderMessage<(int id, UnityEngine.Vector3)>
         return MessageType.Position;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
-        OrderMsg(outData, GetMessageType(), data.id, GetFlagType());
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
         outData.AddRange(BitConverter.GetBytes(data.id));
         outData.AddRange(BitConverter.GetBytes(data.Item2.x));
@@ -375,9 +389,9 @@ public class NetConsole : OrderMessage<(int, string)>
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Ordenable;
+        return FlagsType.Ordenable;
     }
 
     public override (int, string) Deserialize(byte[] message)
@@ -404,11 +418,10 @@ public class NetConsole : OrderMessage<(int, string)>
         return MessageType.Console;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
-        OrderMsg(outData, GetMessageType(), data.Item1, GetFlagType());
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
         outData.AddRange(BitConverter.GetBytes(data.Item1));
         outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
@@ -430,9 +443,9 @@ public class NetSameName : OrderMessage<int>
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Important;
+        return FlagsType.Important;
     }
 
     public override int Deserialize(byte[] message)
@@ -449,7 +462,7 @@ public class NetSameName : OrderMessage<int>
         return MessageType.SameName;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
@@ -465,9 +478,9 @@ public class NetMaxPlayers : OrderMessage<int>
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Important;
+        return FlagsType.Important;
     }
 
     public override int Deserialize(byte[] message)
@@ -484,7 +497,7 @@ public class NetMaxPlayers : OrderMessage<int>
         return MessageType.MaxPlayers;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
@@ -500,9 +513,9 @@ public class NetTimer : OrderMessage<float>
         return (MessageType)BitConverter.ToUInt32(message);
     }
 
-    public override Flags GetFlagType()
+    public override FlagsType GetFlagType()
     {
-        return Flags.Ordenable;
+        return FlagsType.Ordenable;
     }
 
     public override float Deserialize(byte[] message)
@@ -519,7 +532,7 @@ public class NetTimer : OrderMessage<float>
         return MessageType.Timer;
     }
 
-    public override byte[] Serialize()
+    public override byte[] Serialize(int newPlayer)
     {
         List<byte> outData = new List<byte>();
 
