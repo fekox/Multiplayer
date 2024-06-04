@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
 public enum MessageType
 {
     ToServerHandShake = 0,
@@ -241,18 +240,18 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
 
     public override List<Player> Deserialize(byte[] message)
     {
-        int currentBytes = 0;
+        offsetSize = 12;
 
-        int totalPlayers = BitConverter.ToInt32(message, 4);
+        int totalPlayers = BitConverter.ToInt32(message, offsetSize);
         Debug.Log("Players: " + totalPlayers);
 
         List<Player> newPlayerList = new List<Player>();
 
         for (int i = 0; i < totalPlayers; i++)
         {
-            int Id = BitConverter.ToInt32(message, 8 + currentBytes);
+            int Id = BitConverter.ToInt32(message, 4 + offsetSize);
 
-            int clientIdLenght = BitConverter.ToInt32(message, 8 + currentBytes + 4);
+            int clientIdLenght = BitConverter.ToInt32(message, 8 + offsetSize);
 
             Debug.Log("Name Lenght:" + clientIdLenght);
 
@@ -260,10 +259,10 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
 
             for (int j = 1; j < clientIdLenght; j++)
             {
-                clientId += (char)message[8 + currentBytes + 8 + j];
+                clientId += (char)message[12 + offsetSize + j];
             }
 
-            currentBytes += clientIdLenght + 8;
+            offsetSize += clientIdLenght + 8;
 
             Debug.Log(clientId + " || ID:" + Id);
             newPlayerList.Add(new Player(Id, clientId));
@@ -282,6 +281,8 @@ public class NetToClientHandShake : OrderMessage<List<Player>>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, newPlayer);
 
         outData.AddRange(BitConverter.GetBytes(data.Count));
 
@@ -321,7 +322,9 @@ public class NetPingPong : OrderMessage<int>
     {
         int outData;
 
-        outData = BitConverter.ToInt32(message, 4);
+        offsetSize = 12;
+
+        outData = BitConverter.ToInt32(message, offsetSize);
 
         return outData;
     }
@@ -331,6 +334,9 @@ public class NetPingPong : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, newPlayer);
+
         outData.AddRange(BitConverter.GetBytes(data));
 
         StartChecksum(outData);
@@ -354,10 +360,18 @@ public class NetVector3 : OrderMessage<(int id, UnityEngine.Vector3)>
     {
         (int id, UnityEngine.Vector3) outData;
 
-        outData.Item1 = BitConverter.ToInt32(message, 4);
-        outData.Item2.x = BitConverter.ToSingle(message, 8);
-        outData.Item2.y = BitConverter.ToSingle(message, 12);
-        outData.Item2.z = BitConverter.ToSingle(message, 16);
+        offsetSize = 12;
+
+        outData.Item1 = BitConverter.ToInt32(message, offsetSize);
+
+        offsetSize += 4;
+        outData.Item2.x = BitConverter.ToSingle(message, offsetSize);
+
+        offsetSize += 4;
+        outData.Item2.y = BitConverter.ToSingle(message, offsetSize);
+
+        offsetSize += 4;
+        outData.Item2.z = BitConverter.ToSingle(message, offsetSize);
 
         return outData;
     }
@@ -372,6 +386,9 @@ public class NetVector3 : OrderMessage<(int id, UnityEngine.Vector3)>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+        
+        OrderMsg(outData, newPlayer);
+
         outData.AddRange(BitConverter.GetBytes(data.id));
         outData.AddRange(BitConverter.GetBytes(data.Item2.x));
         outData.AddRange(BitConverter.GetBytes(data.Item2.y));
@@ -398,16 +415,19 @@ public class NetConsole : OrderMessage<(int, string)>
     {
         (int, string) outData;
 
-        int baseByte = 12;
+        offsetSize = 12; 
 
-        outData.Item1 = BitConverter.ToInt32(message, 4);
+        outData.Item1 = BitConverter.ToInt32(message, offsetSize);
 
         outData.Item2 = " ";
-        int stringLenght = BitConverter.ToInt32(message, 8);
 
+        offsetSize += 4;
+        int stringLenght = BitConverter.ToInt32(message, offsetSize);
+
+        offsetSize += 4;
         for (int i = 0; i < stringLenght; i++)
         {
-            outData.Item2 += (char)message[baseByte + i];
+            outData.Item2 += (char)message[offsetSize + i];
         }
 
         return outData;
@@ -423,6 +443,9 @@ public class NetConsole : OrderMessage<(int, string)>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, newPlayer);
+
         outData.AddRange(BitConverter.GetBytes(data.Item1));
         outData.AddRange(BitConverter.GetBytes(data.Item2.Length));
 
@@ -452,7 +475,9 @@ public class NetSameName : OrderMessage<int>
     {
         int outData;
 
-        outData = BitConverter.ToInt32(message, 4);
+        offsetSize = 12;
+
+        outData = BitConverter.ToInt32(message, offsetSize);
 
         return outData;
     }
@@ -467,6 +492,8 @@ public class NetSameName : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, newPlayer);
 
         return outData.ToArray();
     }
@@ -487,7 +514,9 @@ public class NetMaxPlayers : OrderMessage<int>
     {
         int outData;
 
-        outData = BitConverter.ToInt32(message, 4);
+        offsetSize = 12;
+
+        outData = BitConverter.ToInt32(message, offsetSize);
 
         return outData;
     }
@@ -502,6 +531,8 @@ public class NetMaxPlayers : OrderMessage<int>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, newPlayer);
 
         return outData.ToArray();
     }
@@ -522,7 +553,9 @@ public class NetTimer : OrderMessage<float>
     {
         float outData;
 
-        outData = BitConverter.ToSingle(message, 4);
+        offsetSize = 12;
+
+        outData = BitConverter.ToSingle(message, offsetSize);
 
         return outData;
     }
@@ -537,6 +570,9 @@ public class NetTimer : OrderMessage<float>
         List<byte> outData = new List<byte>();
 
         outData.AddRange(BitConverter.GetBytes((int)GetMessageType()));
+
+        OrderMsg(outData, newPlayer);
+
         outData.AddRange(BitConverter.GetBytes(data));
 
         StartChecksum(outData);
