@@ -4,10 +4,11 @@ using System.Linq;
 using System.Net;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.PlayerLoop;
 using UnityEngine.SceneManagement;
 
-public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData
+public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveData, IMessageChecker
 {
     [Header("References")]
     [SerializeField] private GameManager gameManager;
@@ -81,6 +82,14 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     [Header("Clients")]
     public Dictionary<int, Client> clients = new Dictionary<int, Client>();
     public Dictionary<IPEndPoint, int> ipToId = new Dictionary<IPEndPoint, int>();
+
+    public Dictionary<MessageType, List<MessageCache>> pendingMessages = new();
+    protected Dictionary<MessageType, MessageCache> lastReceiveMessage = new();
+
+    protected List<MessageCache> lastImportantMessages = new();
+    public UnityEvent<MessageCache> OnResendMessage = new();
+
+    UnityEvent<byte[], IPEndPoint> IMessageChecker.OnPreviousData { get; set; } = new();
 
     public Action<byte[], IPEndPoint> OnReceiveEvent;
 
@@ -372,6 +381,18 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
     {
         MessageType typeMessage = (MessageType)BitConverter.ToInt32(data, 0);
 
+        //MessageFlags flags = NetByteTranslator.GetFlags(data);
+
+        //bool isImportant = flags.HasFlag(MessageFlags.Important);
+        //bool isOrdenable = flags.HasFlag(MessageFlags.Important);
+
+        //ulong messageID = 0;
+
+        //if (isOrdenable)
+        //{
+        //    messageID = NetByteTranslator.GetMesaggeID(data);
+        //}
+
         switch (typeMessage)
         {
             case MessageType.ToServerHandShake:
@@ -560,5 +581,90 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
 
         return typeMessage;
+    }
+
+    private void CheckImportantMessageConfirmation((MessageType, ulong) data)
+    {
+        // Debug.Log($"The message that appeared was {data.Item1} with ID {data.Item2}.");
+        foreach (var VARIABLE in lastImportantMessages)
+        {
+            if (VARIABLE.messageId == data.Item2 && VARIABLE.type == data.Item1 && !VARIABLE.startTimer)
+            {
+                VARIABLE.startTimer = true;
+                VARIABLE.canBeResended = false;
+                //Debug.Log($"Message from Server was confirmed {VARIABLE.type} with ID {VARIABLE.messageId}.");
+                break;
+            }
+        }
+    }
+
+    void IMessageChecker.CheckImportantMessageConfirmation((MessageType, ulong) data)
+    {
+        CheckImportantMessageConfirmation(data);
+    }
+
+    public bool IsTheNextMessage(MessageType messageType, MessageCache value)
+    {
+        Debug.Log($"The id of the message is {value.messageId}");
+        if (lastReceiveMessage.TryAdd(messageType, value))
+        {
+            return true;
+        }
+
+        if (lastReceiveMessage[messageType].messageId + 1 == value.messageId)
+        {
+            lastReceiveMessage[messageType] = value;
+            CheckPendingMessages(messageType, value.messageId);
+
+            return true;
+        }
+        else
+        {
+            Debug.Log($"The message that I need is {lastReceiveMessage[messageType].messageId}");
+            pendingMessages.TryAdd(messageType, new List<MessageCache>());
+            pendingMessages[messageType].Add(new MessageCache(messageType, value.messageId));
+            pendingMessages[messageType].Sort(Utilities.Sorter);
+            return false;
+        }
+    }
+
+    public void CheckPendingMessages(MessageType messageType, ulong value)
+    {
+        if (pendingMessages.ContainsKey(messageType) && pendingMessages[messageType].Count > 0)
+        {
+            pendingMessages[messageType].Sort(Utilities.Sorter);
+            if (value - pendingMessages[messageType][0].messageId + 1 == 0)
+            {
+                Debug.Log($"Sending message that was pending of type {messageType}.");
+                ((IMessageChecker)this).OnPreviousData.Invoke(pendingMessages[messageType][0].data.ToArray(), null);
+                pendingMessages[messageType].RemoveAt(0);
+            }
+        }
+    }
+
+    private bool IsTheLastMesagge(MessageType messageType, MessageCache value)
+    {
+        if (lastReceiveMessage.TryAdd(messageType, value))
+        {
+            return true;
+        }
+
+        if (lastReceiveMessage[messageType].messageId > value.messageId)
+        {
+            return false;
+        }
+
+        lastReceiveMessage[messageType] = value;
+        return true;
+    }
+
+    private void AddMessageToCacheList(MessageType type, List<byte> data, ulong messageId, bool shouldBeResend = false)
+    {
+        MessageCache messageToCache = new(type, data, messageId)
+        {
+            canBeResended = shouldBeResend,
+            startTimer = !shouldBeResend
+        };
+        lastImportantMessages.Add(messageToCache);
     }
 }

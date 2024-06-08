@@ -5,13 +5,6 @@ using UnityEngine;
 
 public static class Utilities
 {
-    public static void SetCanvasActive(this CanvasGroup canvas, bool state = true)
-    {
-        canvas.alpha = state ? 1.0f : 0.0f;
-        canvas.blocksRaycasts = state;
-        canvas.interactable = state;
-    }
-
     public static int Sorter(MessageCache cache1, MessageCache cache2)
     {
         return cache1.messageId > cache2.messageId ? (int)cache1.messageId : (int)cache2.messageId;

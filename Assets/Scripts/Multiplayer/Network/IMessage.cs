@@ -27,7 +27,8 @@ public enum MessageFlags
 {
     Ordenable = 0,
     Important = 1,
-    Resend = 2
+    Resend = 2,
+    Confirmation = 3
 }
 public abstract class BaseMessage<T>
 {
