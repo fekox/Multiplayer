@@ -1,6 +1,22 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using UnityEngine;
+
+public static class Utilities
+{
+    public static void SetCanvasActive(this CanvasGroup canvas, bool state = true)
+    {
+        canvas.alpha = state ? 1.0f : 0.0f;
+        canvas.blocksRaycasts = state;
+        canvas.interactable = state;
+    }
+
+    public static int Sorter(MessageCache cache1, MessageCache cache2)
+    {
+        return cache1.messageId > cache2.messageId ? (int)cache1.messageId : (int)cache2.messageId;
+    }
+}
 
 public class Client
 {
@@ -11,6 +27,10 @@ public class Client
     public DateTime timer = DateTime.UtcNow;
     public bool connected;
     public IPEndPoint ipEndPoint;
+
+    public Dictionary<MessageType, MessageCache> lastReceiveMessage = new Dictionary<MessageType, MessageCache>();
+    public Dictionary<MessageType, List<MessageCache>> pendingMessages = new Dictionary<MessageType, List<MessageCache>>();
+    public List<MessageCache> lastImportantMessages = new List<MessageCache>();
 
     public Client(IPEndPoint ipEndPoint, int id, float timeStamp)
     {
@@ -49,8 +69,87 @@ public class Client
         return clientName;
     }
 
-    public void resetTimer() 
+    public void ResetTimer() 
     {
         this.timer = DateTime.UtcNow;
+    }
+
+    public MessageCache GetLastMessage(MessageType msg)
+    {
+        return lastReceiveMessage[msg];
+    }
+
+    public bool IsTheLastMesagge(MessageType messageType, MessageCache msgToCache)
+    {
+        if (lastReceiveMessage.TryAdd(messageType, msgToCache))
+        {
+            return true;
+        }
+
+        if (lastReceiveMessage[messageType].messageId < msgToCache.messageId)
+        {
+            lastReceiveMessage[messageType] = msgToCache;
+            return true;
+        }
+
+        return true;
+    }
+
+    public bool IsTheNextMessage(MessageType messageType, MessageCache value)
+    {
+        if (lastReceiveMessage.TryAdd(messageType, value))
+        {
+            return true;
+        }
+
+        if (lastReceiveMessage[messageType].messageId + 1 == value.messageId)
+        {
+            lastReceiveMessage[messageType] = value;
+            CheckPendingMessages(messageType, value.messageId);
+
+            return true;
+        }
+        else
+        {
+            pendingMessages.TryAdd(messageType, new List<MessageCache>());
+            pendingMessages[messageType].Add(new MessageCache(messageType, value.messageId));
+            pendingMessages[messageType].Sort(Utilities.Sorter);
+            return false;
+        }
+    }
+
+    public void CheckPendingMessages(MessageType messageType, ulong value)
+    {
+        if (pendingMessages.ContainsKey(messageType) && pendingMessages[messageType].Count > 0)
+        {
+            pendingMessages[messageType].Sort(Utilities.Sorter);
+            if (value - pendingMessages[messageType][0].messageId + 1 == 0)
+            {
+                pendingMessages[messageType][0].data.ToArray();
+                pendingMessages[messageType].RemoveAt(0);
+            }
+        }
+    }
+
+    public void CheckImportantMessageConfirmation((MessageType, ulong) data)
+    {
+        foreach (var cached in lastImportantMessages)
+        {
+            //  Debug.Log($"Id Comparison {cached.messageId} & {data.Item2}");
+            if (cached.messageId == data.Item2 && cached.type == data.Item1)
+            {
+                cached.startTimer = true;
+                cached.canBeResended = false;
+                Debug.Log($"Confirmation from client {id} of {cached.type} with id {cached.messageId} was received.");
+                lastImportantMessages?.Remove(cached);
+                break;
+            }
+        }
+    }
+    public void OnDestroy()
+    {
+        lastImportantMessages.Clear();
+        pendingMessages.Clear();
+        lastReceiveMessage.Clear();
     }
 }

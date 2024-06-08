@@ -173,7 +173,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         {
             if (clients[i].id == PlayerId)
             {
-                clients[i].resetTimer();
+                clients[i].ResetTimer();
             }
         }
     }
