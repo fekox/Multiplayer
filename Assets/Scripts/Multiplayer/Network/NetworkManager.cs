@@ -379,19 +379,19 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
     public MessageType OnRecieveMessage(byte[] data, IPEndPoint Ip)
     {
-        MessageType typeMessage = (MessageType)BitConverter.ToInt32(data, 0);
+        MessageType typeMessage = NetByteTranslator.GetNetworkType(data);
+        int playerID = NetByteTranslator.GetPlayerID(data);
+        MessageFlags flags = NetByteTranslator.GetFlags(data);
 
-        //MessageFlags flags = NetByteTranslator.GetFlags(data);
+        bool isImportant = flags.HasFlag(MessageFlags.Important);
+        bool isOrdenable = flags.HasFlag(MessageFlags.Important);
 
-        //bool isImportant = flags.HasFlag(MessageFlags.Important);
-        //bool isOrdenable = flags.HasFlag(MessageFlags.Important);
+        ulong messageID = 0;
 
-        //ulong messageID = 0;
-
-        //if (isOrdenable)
-        //{
-        //    messageID = NetByteTranslator.GetMesaggeID(data);
-        //}
+        if (isOrdenable)
+        {
+            messageID = NetByteTranslator.GetMesaggeID(data);
+        }
 
         switch (typeMessage)
         {
@@ -512,17 +512,59 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 if (netVector3.IsChecksumOk(data))
                 {
-                    (int, Vector2) infoPos = netVector3.Deserialize(data);
-
-                    for (int i = 0; i < playerList.Count; i++)
+                    if (!isServer) 
                     {
-                        if (playerList[i].ID == infoPos.Item1)
+                        messageID = 0;
+
+                        NetVector3 netPlayerPos = new NetVector3();
+                        messageID = NetByteTranslator.GetMesaggeID(data);
+                        MessageCache msg = new MessageCache(netPlayerPos.GetMessageType(), data.ToList(), messageID);
+
+                        if (IsTheLastMesagge(MessageType.Position, msg))
                         {
-                            playerList[i].position = infoPos.Item2;
+                            (int, Vector3) infoPos = netVector3.Deserialize(data);
 
-                            var playerMove = gameManager.playersGO[i];
+                            for (int i = 0; i < playerList.Count; i++)
+                            {
+                                if (playerList[i].ID == infoPos.Item1)
+                                {
+                                    playerList[i].position = infoPos.Item2;
 
-                            playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
+                                    var playerMove = gameManager.playersGO[i];
+
+                                    playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
+                                }
+                            }
+                        }
+                    }
+
+                    else 
+                    {
+                        messageID = 0;
+
+                        NetVector3 netPlayerPos = new NetVector3();
+                        messageID = NetByteTranslator.GetMesaggeID(data);
+                        MessageCache msg = new MessageCache(netPlayerPos.GetMessageType(), data.ToList(), messageID);
+
+                        if (clients[playerID].IsTheLastMesagge(MessageType.Position, msg))
+                        {
+                            (int, Vector3) infoPos = netPlayerPos.Deserialize(data);
+
+                            for (int i = 0; i < playerList.Count; i++)
+                            {
+                                if (playerList[i].ID == infoPos.Item1)
+                                {
+                                    playerList[i].position = infoPos.Item2;
+
+                                    var playerMove = gameManager.playersGO[i];
+
+                                    playerMove.GetComponent<PlayerMovement>().UpdatePlayerMovement(infoPos.Item1, infoPos.Item2);
+
+                                    NetVector3 dataToSend = netPlayerPos;
+
+                                    SendToEveryoneExceptClient(dataToSend.Serialize(playerID), playerID);
+                                }
+                            }
                         }
                     }
                 }
@@ -581,6 +623,20 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
         }
 
         return typeMessage;
+    }
+
+    public void SendToEveryoneExceptClient(byte[] data, int id)
+    {
+        using (var iterator = clients.GetEnumerator())
+        {
+            while (iterator.MoveNext())
+            {
+                if (iterator.Current.Value.id != id)
+                {
+                    connection.Send(data, iterator.Current.Value.ipEndPoint);
+                }
+            }
+        }
     }
 
     private void CheckImportantMessageConfirmation((MessageType, ulong) data)
