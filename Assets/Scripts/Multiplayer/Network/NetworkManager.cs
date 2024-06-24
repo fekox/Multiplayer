@@ -433,7 +433,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     sameName = false;
                 }
 
-                break;
+            break;
 
             case MessageType.ToClientHandShake:
 
@@ -451,7 +451,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 maxPlayers = false;
                 sameName = false;
-                break;
+            break;
 
             case MessageType.PingPong:
 
@@ -477,7 +477,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 sameName = false;
                 maxPlayers = false;
-                break;
+            break;
 
             case MessageType.Console:
 
@@ -506,7 +506,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 sameName = false;
                 maxPlayers = false;
-                break;
+            break;
 
             case MessageType.Position:
 
@@ -576,21 +576,21 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
                 sameName = false;
                 maxPlayers = false;
-                break;
+            break;
 
             case MessageType.SameName:
 
                 ErrorPopup.SetActive(true);
                 chatScreen.SetActive(false);
 
-                break;
+            break;
 
             case MessageType.MaxPlayers:
 
                 MaxPlayerPopup.SetActive(true);
                 chatScreen.SetActive(false);
 
-                break;
+            break;
 
             case MessageType.Timer:
 
@@ -608,13 +608,13 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
                     Debug.Log(nameof(NetTimer) + ": message is corrupt.");
                 }
 
-                break;
+            break;
 
             default:
 
                 Debug.LogError("Message type not found");
 
-                break;
+            break;
         }
 
         if (isServer && !sameName && !maxPlayers)
@@ -674,6 +674,7 @@ public class NetworkManager : MonoBehaviourSingleton<NetworkManager>, IReceiveDa
 
             return true;
         }
+
         else
         {
             Debug.Log($"The message that I need is {lastReceiveMessage[messageType].messageId}");
